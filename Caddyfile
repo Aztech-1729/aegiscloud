@@ -1,5 +1,13 @@
 aegiscloud.in {
-    reverse_proxy frontend:3000
+    @api {
+        path /api/*
+    }
+    handle @api {
+        reverse_proxy backend:8000
+    }
+    handle {
+        reverse_proxy frontend:3000
+    }
 }
 
 api.aegiscloud.in {

@@ -39,7 +39,7 @@ oauth.register(
 
 @router.get("/google/login")
 async def google_login(request: Request):
-    redirect_uri = "https://api.aegiscloud.in/api/v1/auth/google/callback"
+    redirect_uri = f"{settings.FRONTEND_URL}/api/v1/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/google/callback")
@@ -81,7 +81,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(deps.get_
 
 @router.get("/github/login")
 async def github_login(request: Request):
-    redirect_uri = "https://api.aegiscloud.in/api/v1/auth/github/callback"
+    redirect_uri = f"{settings.FRONTEND_URL}/api/v1/auth/github/callback"
     return await oauth.github.authorize_redirect(request, redirect_uri)
 
 @router.get("/github/callback")
