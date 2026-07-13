@@ -11,11 +11,13 @@ from datetime import datetime, timezone
 import json
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from openai import AsyncOpenAI
 
 from app.services.tool_registry import tool_registry, ToolValidationError
 from app.services.command_queue import command_queue
 from app.models.models import Command, CommandStatus, Device, User
 from app.core.logging import get_logger
+from app.core.config import settings
 
 logger = get_logger(__name__)
 
@@ -54,10 +56,17 @@ TOOL_PROMPTS = {
 
 
 class AIPipeline:
-    """Phase 4: Structured AI pipeline that only uses approved tools."""
+    """Phase 4: Structured AI pipeline that uses OpenAI function calling to select tools."""
 
     def __init__(self):
         self.tool_prompts = TOOL_PROMPTS
+        if settings.OPENAI_API_KEY:
+            self.client = AsyncOpenAI(
+                api_key=settings.OPENAI_API_KEY,
+                base_url=settings.OPENAI_API_BASE,
+            )
+        else:
+            self.client = None
 
     async def process_message(
         self,
@@ -78,11 +87,11 @@ class AIPipeline:
         message_lower = message.lower()
 
         # Step 1: LLM intent analysis → tool selection
-        selected_tools = self._analyze_intent(message_lower)
+        selected_tools = await self._analyze_intent(message_lower)
 
         if not selected_tools:
             return {
-                "message": self._general_response(message_lower, device.name),
+                "message": await self._general_response(message_lower, device.name),
                 "tool_calls": [],
                 "command_id": None,
             }
@@ -142,7 +151,7 @@ class AIPipeline:
                 })
 
         # Step 5: Generate response
-        response_message = self._generate_response(message_lower, selected_tools, device.name, tool_calls)
+        response_message = await self._generate_response(message_lower, selected_tools, device.name, tool_calls)
 
         return {
             "message": response_message,
@@ -150,12 +159,64 @@ class AIPipeline:
             "command_id": command_id,
         }
 
-    def _analyze_intent(self, message: str) -> list[dict]:
-        """Phase 4: Map natural language to tool calls.
+    async def _analyze_intent(self, message: str) -> list[dict]:
+        """Phase 4: Map natural language to tool calls using OpenAI."""
+        if not self.client:
+            return self._fallback_analyze_intent(message)
+            
+        tools_schema = [
+            {
+                "type": "function",
+                "function": {
+                    "name": t_name,
+                    "description": t_desc,
+                    "parameters": {"type": "object", "properties": {}}
+                }
+            }
+            for t_name, t_desc in self.tool_prompts.items()
+        ]
         
-        This replaces raw LLM function calling with deterministic
-        intent → tool mapping for safety.
-        """
+        # Add parameter schemas for specific tools
+        for t in tools_schema:
+            if t["function"]["name"] == "kill_process":
+                t["function"]["parameters"]["properties"] = {"name": {"type": "string"}}
+                t["function"]["parameters"]["required"] = ["name"]
+            elif t["function"]["name"] == "list_processes":
+                t["function"]["parameters"]["properties"] = {"sort_by": {"type": "string"}, "limit": {"type": "integer"}}
+            elif t["function"]["name"] == "search_files":
+                t["function"]["parameters"]["properties"] = {"pattern": {"type": "string"}}
+            elif t["function"]["name"] == "uninstall_app":
+                t["function"]["parameters"]["properties"] = {"name": {"type": "string"}}
+            elif t["function"]["name"] == "storage_analysis":
+                t["function"]["parameters"]["properties"] = {"min_size_mb": {"type": "integer"}}
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are Aegis AI Optimizer. You select the necessary tools to fulfill the user's request on their computer. ONLY select tools that are absolutely necessary. If no tools are needed, just chat with the user."},
+                    {"role": "user", "content": message}
+                ],
+                tools=tools_schema,
+                tool_choice="auto",
+            )
+            
+            message_obj = response.choices[0].message
+            if message_obj.tool_calls:
+                return [
+                    {
+                        "name": call.function.name,
+                        "parameters": json.loads(call.function.arguments) if call.function.arguments else {}
+                    }
+                    for call in message_obj.tool_calls
+                ]
+            return []
+        except Exception as e:
+            logger.error(f"OpenAI Intent error: {e}")
+            return self._fallback_analyze_intent(message)
+
+    def _fallback_analyze_intent(self, message: str) -> list[dict]:
+        """Fallback when LLM is down."""
         tools = []
 
         # Performance diagnostics
@@ -252,14 +313,39 @@ class AIPipeline:
 
         return tools
 
-    def _generate_response(
+    async def _generate_response(
         self,
         message: str,
         selected_tools: list[dict],
         device_name: str,
         tool_calls: list[dict],
     ) -> str:
-        """Generate a natural language response for the user."""
+        """Generate a natural language response for the user via LLM."""
+        if not self.client:
+            return self._fallback_generate_response(message, selected_tools, device_name, tool_calls)
+            
+        tool_desc = [f"{t['name']} ({t.get('parameters', {})})" for t in selected_tools]
+        
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": f"You are Aegis AI Optimizer assisting with device '{device_name}'. The user requested an action. You have queued the following tools to run on their device: {tool_desc}. Write a short, professional, and confident response telling the user what you are doing (e.g. 'I am analyzing your storage...', 'I have queued a process kill for...'). Do not output markdown code blocks. Keep it to 1-2 sentences."},
+                    {"role": "user", "content": message}
+                ]
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"OpenAI Generate error: {e}")
+            return self._fallback_generate_response(message, selected_tools, device_name, tool_calls)
+
+    def _fallback_generate_response(
+        self,
+        message: str,
+        selected_tools: list[dict],
+        device_name: str,
+        tool_calls: list[dict],
+    ) -> str:
         tool_names = [t["name"] for t in selected_tools]
 
         if "clean_temp" in tool_names:
@@ -318,7 +404,25 @@ class AIPipeline:
             f"Running: {', '.join(tool_descriptions[:3])}."
         )
 
-    def _general_response(self, message: str, device_name: str) -> str:
+    async def _general_response(self, message: str, device_name: str) -> str:
+        """Response when no specific tool is matched via LLM."""
+        if not self.client:
+            return self._fallback_general_response(message, device_name)
+            
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": f"You are Aegis AI Optimizer assisting with device '{device_name}'. Provide a helpful, concise answer to the user's message since no specific system tools were needed for this request."},
+                    {"role": "user", "content": message}
+                ]
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"OpenAI General Response error: {e}")
+            return self._fallback_general_response(message, device_name)
+
+    def _fallback_general_response(self, message: str, device_name: str) -> str:
         """Response when no specific tool is matched."""
         return (
             f"I can help you manage **{device_name}**. Here are some things I can do:\n\n"

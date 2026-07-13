@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_ID: str = ""
     GITHUB_CLIENT_SECRET: str = ""
 
+    OPENAI_API_KEY: str = "sk-S2Xl3ZHCIQgBy3fV4sO8B041jNzxW2tnukEcVl31ofjbMpYfWfqnI2cFMLEPKJAp"
+    OPENAI_API_BASE: str = "https://opencode.ai/zen/v1"
+    OPENAI_MODEL: str = "deepseek-v4-flash-free"
+
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
