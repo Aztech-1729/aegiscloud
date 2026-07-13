@@ -6,27 +6,15 @@ const footerLinks = {
     { label: 'Features', href: '#features' },
     { label: 'Pricing', href: '#pricing' },
     { label: 'Security', href: '#security' },
-    { label: 'Download Agent', href: '#' },
-    { label: 'Changelog', href: '#' },
+    { label: 'Download Agent', href: '/AegisSetup.exe' },
   ],
   Resources: [
     { label: 'Documentation', href: '/docs' },
     { label: 'API Reference', href: '/docs/api' },
-    { label: 'Status Page', href: '#' },
-    { label: 'Blog', href: '#' },
-    { label: 'Community', href: '#' },
-  ],
-  Company: [
-    { label: 'About', href: '#' },
-    { label: 'Careers', href: '#' },
-    { label: 'Contact', href: '#' },
-    { label: 'Partners', href: '#' },
   ],
   Legal: [
-    { label: 'Privacy Policy', href: '#' },
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Cookie Policy', href: '#' },
-    { label: 'GDPR', href: '#' },
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
   ],
 };
 
