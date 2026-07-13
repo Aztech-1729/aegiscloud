@@ -38,15 +38,14 @@ services:
     container_name: aegis-backend
     env_file:
       - .env.production
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
+    restart: unless-stopped
+    networks:
+      - aegis_network
 
   frontend:
     build:
@@ -60,15 +59,35 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
       NEXT_PUBLIC_LEMON_SQUEEZY_URL: ${NEXT_PUBLIC_LEMON_SQUEEZY_URL}
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
+    restart: unless-stopped
+    networks:
+      - aegis_network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: aegis-caddy
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - aegis_network
 
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  aegis_network:
+    driver: bridge
