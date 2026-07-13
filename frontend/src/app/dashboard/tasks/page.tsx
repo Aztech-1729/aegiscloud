@@ -13,7 +13,7 @@ import {
 
 const mockTasks: any[] = [];
 
-const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
+const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' | 'default' }> = {
   completed: { icon: CheckCircle2, color: 'text-emerald-400', variant: 'success' },
   running: { icon: Loader2, color: 'text-aegis-400', variant: 'default' },
   failed: { icon: XCircle, color: 'text-red-400', variant: 'destructive' },
