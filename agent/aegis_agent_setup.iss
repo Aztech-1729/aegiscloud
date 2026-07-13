@@ -12,6 +12,8 @@ ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
 DisableWelcomePage=no
 DisableDirPage=yes
+SetupIconFile=logo.ico
+UninstallDisplayIcon={app}\aegis-agent.exe
 
 [Files]
 Source: "target\release\aegis-agent.exe"; DestDir: "{app}"; Flags: ignoreversion
