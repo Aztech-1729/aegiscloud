@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     TASK_TIMEOUT_SECONDS: int = 300
     HEARTBEAT_INTERVAL_SECONDS: int = 30
 
-    model_config = {"env_file": ".env", "case_sensitive": True}
+    model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
 
 
 settings = Settings()
