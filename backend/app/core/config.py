@@ -24,8 +24,8 @@ class Settings(BaseSettings):
         "enterprise": "variant_enterprise_monthly",
     }
 
-    GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_CLIENT_ID: str = "1054542396762-3kn4smausm4s9cpqdrtok8upk6ldjvd7.apps.googleusercontent.com"
+    GOOGLE_CLIENT_SECRET: str = "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"
     GITHUB_CLIENT_ID: str = ""
     GITHUB_CLIENT_SECRET: str = ""
 
