@@ -59,10 +59,12 @@ export function LandingHero() {
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
-            <Button variant="outline" size="xl" className="group w-full sm:w-auto">
-              <Download className="mr-2 h-5 w-5" />
-              Download Agent
-            </Button>
+            <a href="/AegisSetup.exe" download>
+              <Button variant="outline" size="xl" className="group w-full sm:w-auto">
+                <Download className="mr-2 h-5 w-5" />
+                Download Agent
+              </Button>
+            </a>
           </div>
 
           <div
