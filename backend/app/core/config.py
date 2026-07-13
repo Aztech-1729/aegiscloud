@@ -15,12 +15,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    STRIPE_SECRET_KEY: str = "sk_test_placeholder"
-    STRIPE_WEBHOOK_SECRET: str = "whsec_placeholder"
-    STRIPE_PRICES: dict = {
-        "pro": "price_pro_monthly",
-        "business": "price_business_monthly",
-        "enterprise": "price_enterprise_monthly",
+    LEMON_SQUEEZY_API_KEY: str = "ls_test_placeholder"
+    LEMON_SQUEEZY_WEBHOOK_SECRET: str = "whsec_placeholder"
+    LEMON_SQUEEZY_STORE_ID: str = "store_id_placeholder"
+    LEMON_SQUEEZY_VARIANTS: dict = {
+        "pro": "variant_pro_monthly",
+        "business": "variant_business_monthly",
+        "enterprise": "variant_enterprise_monthly",
     }
 
     GOOGLE_CLIENT_ID: str = ""

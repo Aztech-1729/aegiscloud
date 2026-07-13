@@ -43,7 +43,7 @@ async def create_checkout(
     db: AsyncSession = Depends(get_db),
 ):
     return CheckoutResponse(
-        checkout_url=f"https://checkout.stripe.com/mock/{data.plan.value}",
+        checkout_url=f"https://aegiscloud.lemonsqueezy.com/checkout/mock/{data.plan.value}",
         session_id=f"cs_mock_{data.plan.value}",
     )
 
