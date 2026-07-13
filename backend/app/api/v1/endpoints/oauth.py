@@ -9,7 +9,7 @@ import logging
 from app.core.config import settings
 from app.api import deps
 from app.core.security import create_access_token
-from app.models.user import User
+from app.models.models import User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
