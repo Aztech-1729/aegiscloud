@@ -33,3 +33,4 @@ dist/
 
 agent/target/
 agent/Output/
+.env.production
