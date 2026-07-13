@@ -20,12 +20,14 @@ from app.api.v1.endpoints import (
     memory,
     events,
     certificates,
+    oauth,
 )
 
 api_router = APIRouter()
 
 # Authentication
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(oauth.router, prefix="/auth", tags=["OAuth Authentication"])
 
 # Device Management (Phase 1-2)
 api_router.include_router(devices.router, prefix="/devices", tags=["Devices"])

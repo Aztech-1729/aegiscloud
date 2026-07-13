@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     }
 
     GOOGLE_CLIENT_ID: str = "1054542396762-3kn4smausm4s9cpqdrtok8upk6ldjvd7.apps.googleusercontent.com"
-    GOOGLE_CLIENT_SECRET: str = "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"
+    GOOGLE_CLIENT_SECRET: str = ""
     GITHUB_CLIENT_ID: str = ""
     GITHUB_CLIENT_SECRET: str = ""
 
