@@ -71,7 +71,7 @@ impl ToolExecutor {
         std::thread::sleep(std::time::Duration::from_millis(200));
         sys.refresh_cpu_usage();
 
-        let usage = sys.global_cpu_usage();
+        let usage = sys.global_cpu_info().cpu_usage();
         ToolResult {
             success: true,
             message: format!("CPU usage: {:.1}%", usage),
@@ -211,7 +211,7 @@ impl ToolExecutor {
     async fn list_processes(&self) -> ToolResult {
         use sysinfo::System;
         let mut sys = System::new_all();
-        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        sys.refresh_processes();
 
         let processes: Vec<serde_json::Value> = sys
             .processes()
@@ -220,7 +220,7 @@ impl ToolExecutor {
             .map(|(pid, proc_)| {
                 serde_json::json!({
                     "pid": pid.as_u32(),
-                    "name": proc_.name().to_string_lossy(),
+                    "name": proc_.name().to_string(),
                     "cpu": proc_.cpu_usage(),
                     "memory_mb": proc_.memory() / 1024 / 1024,
                     "status": format!("{:?}", proc_.status()),
@@ -237,8 +237,11 @@ impl ToolExecutor {
 
     async fn kill_process(&self, params: Option<serde_json::Value>) -> ToolResult {
         let name = params
-            .and_then(|p| p.get("name").and_then(|n| n.as_str()))
-            .unwrap_or("");
+            .as_ref()
+            .and_then(|p| p.get("name"))
+            .and_then(|n| n.as_str())
+            .unwrap_or("")
+            .to_string();
 
         if name.is_empty() {
             return ToolResult {
@@ -249,7 +252,7 @@ impl ToolExecutor {
         }
 
         let output = tokio::process::Command::new("taskkill")
-            .args(["/F", "/IM", name])
+            .args(["/F", "/IM", &name])
             .output()
             .await;
 
@@ -292,11 +295,11 @@ impl ToolExecutor {
     }
 
     async fn start_service(&self, params: Option<serde_json::Value>) -> ToolResult {
-        let name = params.and_then(|p| p.get("name").and_then(|n| n.as_str())).unwrap_or("");
+        let name = params.as_ref().and_then(|p| p.get("name")).and_then(|n| n.as_str()).unwrap_or("").to_string();
         if name.is_empty() {
             return ToolResult { success: false, message: "Service name required".to_string(), data: serde_json::json!({}) };
         }
-        let output = tokio::process::Command::new("net").args(["start", name]).output().await;
+        let output = tokio::process::Command::new("net").args(["start", &name]).output().await;
         match output {
             Ok(out) => ToolResult { success: out.status.success(), message: format!("Service '{}' started", name), data: serde_json::json!({}) },
             Err(e) => ToolResult { success: false, message: format!("Failed: {}", e), data: serde_json::json!({}) },
@@ -304,11 +307,11 @@ impl ToolExecutor {
     }
 
     async fn stop_service(&self, params: Option<serde_json::Value>) -> ToolResult {
-        let name = params.and_then(|p| p.get("name").and_then(|n| n.as_str())).unwrap_or("");
+        let name = params.as_ref().and_then(|p| p.get("name")).and_then(|n| n.as_str()).unwrap_or("").to_string();
         if name.is_empty() {
             return ToolResult { success: false, message: "Service name required".to_string(), data: serde_json::json!({}) };
         }
-        let output = tokio::process::Command::new("net").args(["stop", name]).output().await;
+        let output = tokio::process::Command::new("net").args(["stop", &name]).output().await;
         match output {
             Ok(out) => ToolResult { success: out.status.success(), message: format!("Service '{}' stopped", name), data: serde_json::json!({}) },
             Err(e) => ToolResult { success: false, message: format!("Failed: {}", e), data: serde_json::json!({}) },
@@ -316,13 +319,13 @@ impl ToolExecutor {
     }
 
     async fn restart_service(&self, params: Option<serde_json::Value>) -> ToolResult {
-        let name = params.and_then(|p| p.get("name").and_then(|n| n.as_str())).unwrap_or("");
+        let name = params.as_ref().and_then(|p| p.get("name")).and_then(|n| n.as_str()).unwrap_or("").to_string();
         if name.is_empty() {
             return ToolResult { success: false, message: "Service name required".to_string(), data: serde_json::json!({}) };
         }
-        let _ = tokio::process::Command::new("net").args(["stop", name]).output().await;
+        let _ = tokio::process::Command::new("net").args(["stop", &name]).output().await;
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        let output = tokio::process::Command::new("net").args(["start", name]).output().await;
+        let output = tokio::process::Command::new("net").args(["start", &name]).output().await;
         match output {
             Ok(out) => ToolResult { success: out.status.success(), message: format!("Service '{}' restarted", name), data: serde_json::json!({}) },
             Err(e) => ToolResult { success: false, message: format!("Failed: {}", e), data: serde_json::json!({}) },

@@ -24,7 +24,8 @@ pub fn generate_device_fingerprint() -> String {
     // For now, we use a secure random value as placeholder:
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    let hardware_id: [u8; 64] = rng.gen();
+    let mut hardware_id = [0u8; 64];
+    rng.fill(&mut hardware_id);
     
     hasher.update(&hardware_id);
     let result = hasher.finalize();

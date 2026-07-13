@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import {
   Monitor, Cpu, MemoryStick, HardDrive, Activity, Clock,
   Power, RefreshCw, Terminal, MessageSquare, ArrowLeft,

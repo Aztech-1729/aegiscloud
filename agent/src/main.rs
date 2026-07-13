@@ -18,7 +18,7 @@ mod security;
 mod service;
 mod updater;
 mod terminal;
-mod registry;
+
 mod queue;
 
 use system::info::SystemInfo;

@@ -89,7 +89,7 @@ impl CommandQueue {
         // Add to queue sorted by priority
         let mut queue = self.queue.lock().await;
         let pos = queue.iter().position(|c| c.priority < cmd.priority).unwrap_or(queue.len());
-        queue.insert(pos, cmd);
+        queue.insert(pos, cmd.clone());
 
         info!("Command queued: {}", cmd.id);
         Ok(())
@@ -108,7 +108,8 @@ impl CommandQueue {
 
         // Keep history bounded
         if executed.len() > 1000 {
-            executed.drain(..executed.len() - 1000);
+            let drain_end = executed.len() - 1000;
+            executed.drain(..drain_end);
         }
     }
 

@@ -5,6 +5,7 @@ export interface User {
   avatarUrl: string | null;
   plan: PlanType;
   twoFactorEnabled: boolean;
+  is_admin: boolean;
   createdAt: string;
   updatedAt: string;
 }

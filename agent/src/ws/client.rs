@@ -85,7 +85,7 @@ pub async fn connect_and_run(state: AgentState) -> Result<(), Box<dyn std::error
             "os_version": sys_info.os_version,
             "cpu_info": sys_info.cpu_brand,
             "ram_total_gb": sys_info.total_ram_mb as f64 / 1024.0,
-            "gpu_info": sys_info.gpu_info,
+
             "windows_version": sys_info.os_version,
             "uptime_seconds": sys_info.uptime_secs,
         })),
@@ -99,10 +99,7 @@ pub async fn connect_and_run(state: AgentState) -> Result<(), Box<dyn std::error
     let _ = write.send(Message::Text(serde_json::to_string(&heartbeat)?)).await;
 
     // Heartbeat task
-    let heartbeat_write = write.clone();
-    let heartbeat_state = state.clone();
-    // Note: We can't actually split write like this in practice.
-    // In production, we'd use a channel-based approach.
+    // In production, we'd use a channel-based approach for heartbeat.
 
     // Main message loop
     while let Some(msg) = read.next().await {
