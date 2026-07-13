@@ -3,6 +3,7 @@ Enterprise-grade SaaS platform for secure remote PC management.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
@@ -31,6 +32,7 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
