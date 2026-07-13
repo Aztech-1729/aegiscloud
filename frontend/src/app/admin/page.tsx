@@ -12,28 +12,11 @@ import {
   Server, Zap, AlertTriangle
 } from 'lucide-react';
 
-const mockStats = [
-  { label: 'Total Users', value: '12,847', change: '+12.5%', icon: Users, color: 'text-aegis-400', bg: 'bg-aegis-500/10' },
-  { label: 'Active Devices', value: '34,521', change: '+8.2%', icon: Monitor, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  { label: 'Active Subscriptions', value: '3,421', change: '+15.3%', icon: CreditCard, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  { label: 'Tasks Executed', value: '1.2M', change: '+23.1%', icon: Activity, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-];
+const mockStats: any[] = [];
 
-const mockUsers = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', plan: 'Pro', status: 'active', devices: 5, created: '2024-01-15' },
-  { id: '2', name: 'Jane Smith', email: 'jane@example.com', plan: 'Business', status: 'active', devices: 12, created: '2024-01-10' },
-  { id: '3', name: 'Bob Johnson', email: 'bob@example.com', plan: 'Free', status: 'active', devices: 2, created: '2024-01-08' },
-  { id: '4', name: 'Alice Williams', email: 'alice@example.com', plan: 'Pro', status: 'suspended', devices: 3, created: '2024-01-05' },
-  { id: '5', name: 'Charlie Brown', email: 'charlie@example.com', plan: 'Enterprise', status: 'active', devices: 50, created: '2024-01-01' },
-];
+const mockUsers: any[] = [];
 
-const mockDevices = [
-  { id: '1', name: 'Work Desktop', user: 'John Doe', status: 'online', os: 'Windows 11', lastSeen: 'Online now' },
-  { id: '2', name: 'Gaming PC', user: 'Jane Smith', status: 'online', os: 'Windows 11', lastSeen: 'Online now' },
-  { id: '3', name: 'Home Office', user: 'Bob Johnson', status: 'offline', os: 'Windows 10', lastSeen: '2h ago' },
-  { id: '4', name: 'Media Server', user: 'Alice Williams', status: 'online', os: 'Windows 11', lastSeen: 'Online now' },
-  { id: '5', name: 'Dev Machine', user: 'Charlie Brown', status: 'offline', os: 'Windows 11', lastSeen: '1d ago' },
-];
+const mockDevices: any[] = [];
 
 export default function AdminPage() {
   const [searchUsers, setSearchUsers] = useState('');

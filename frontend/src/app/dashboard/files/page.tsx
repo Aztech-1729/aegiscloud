@@ -10,20 +10,7 @@ import {
   Home, ArrowLeft, MoreHorizontal
 } from 'lucide-react';
 
-const mockFiles = [
-  { name: 'Documents', type: 'folder', size: '-', modified: '2024-01-15', items: 42 },
-  { name: 'Downloads', type: 'folder', size: '-', modified: '2024-01-15', items: 128 },
-  { name: 'Pictures', type: 'folder', size: '-', modified: '2024-01-14', items: 256 },
-  { name: 'Videos', type: 'folder', size: '-', modified: '2024-01-10', items: 15 },
-  { name: 'Desktop', type: 'folder', size: '-', modified: '2024-01-15', items: 23 },
-  { name: 'report-final.docx', type: 'file', size: '2.4 MB', modified: '2024-01-15' },
-  { name: 'budget-2024.xlsx', type: 'file', size: '856 KB', modified: '2024-01-14' },
-  { name: 'presentation.pptx', type: 'file', size: '15.2 MB', modified: '2024-01-13' },
-  { name: 'screenshot.png', type: 'file', size: '1.1 MB', modified: '2024-01-12' },
-  { name: 'backup.zip', type: 'file', size: '450 MB', modified: '2024-01-10' },
-  { name: 'notes.txt', type: 'file', size: '4 KB', modified: '2024-01-15' },
-  { name: 'config.json', type: 'file', size: '2 KB', modified: '2024-01-08' },
-];
+const mockFiles: any[] = [];
 
 function getFileIcon(name: string, type: string) {
   if (type === 'folder') return <Folder className="h-5 w-5 text-amber-400" />;

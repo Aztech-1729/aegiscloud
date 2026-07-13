@@ -11,16 +11,7 @@ import {
   Play, RotateCcw, Pause, MoreHorizontal
 } from 'lucide-react';
 
-const mockTasks = [
-  { id: '1', name: 'Clean Temporary Files', device: 'Work Desktop', status: 'completed', progress: 100, startTime: '2024-01-15T10:30:00', duration: '12s', result: 'Cleaned 1,247 files (2.3 GB)' },
-  { id: '2', name: 'System Information Scan', device: 'Gaming PC', status: 'running', progress: 65, startTime: '2024-01-15T10:35:00', duration: '...', result: null },
-  { id: '3', name: 'Restart Windows Explorer', device: 'Work Desktop', status: 'completed', progress: 100, startTime: '2024-01-15T10:20:00', duration: '3s', result: 'Explorer restarted successfully' },
-  { id: '4', name: 'Storage Analysis', device: 'Media Server', status: 'failed', progress: 45, startTime: '2024-01-15T09:45:00', duration: '45s', result: 'Permission denied on C:\\Windows\\System32' },
-  { id: '5', name: 'List Installed Applications', device: 'Home Office', status: 'pending', progress: 0, startTime: '2024-01-15T10:40:00', duration: '-', result: null },
-  { id: '6', name: 'Flush DNS Cache', device: 'Gaming PC', status: 'completed', progress: 100, startTime: '2024-01-15T09:30:00', duration: '1s', result: 'DNS cache flushed successfully' },
-  { id: '7', name: 'Defender Status Check', device: 'Work Desktop', status: 'completed', progress: 100, startTime: '2024-01-15T09:00:00', duration: '5s', result: 'Real-time protection: Active' },
-  { id: '8', name: 'Process List', device: 'Dev Machine', status: 'cancelled', progress: 30, startTime: '2024-01-15T08:45:00', duration: '-', result: 'Cancelled by user' },
-];
+const mockTasks: any[] = [];
 
 const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
   completed: { icon: CheckCircle2, color: 'text-emerald-400', variant: 'success' },

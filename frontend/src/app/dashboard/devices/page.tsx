@@ -11,14 +11,7 @@ import {
   Activity, Clock, Server
 } from 'lucide-react';
 
-const mockDevices = [
-  { id: '1', name: 'Work Desktop', status: 'online', os: 'Windows 11 Pro 23H2', agent: 'v1.2.4', cpu: 'Intel Core i7-13700K', ram: '32 GB DDR5', gpu: 'NVIDIA RTX 4070', diskUsed: 234, diskTotal: 512, uptime: '3d 14h', lastSeen: 'Online now', group: 'Office' },
-  { id: '2', name: 'Gaming PC', status: 'online', os: 'Windows 11 Home 23H2', agent: 'v1.2.4', cpu: 'AMD Ryzen 9 7950X', ram: '64 GB DDR5', gpu: 'NVIDIA RTX 4090', diskUsed: 1200, diskTotal: 2000, uptime: '1d 6h', lastSeen: 'Online now', group: 'Gaming' },
-  { id: '3', name: 'Home Office', status: 'offline', os: 'Windows 10 Pro 22H2', agent: 'v1.2.3', cpu: 'Intel Core i5-12400', ram: '16 GB DDR4', gpu: 'Intel UHD 730', diskUsed: 89, diskTotal: 256, uptime: '-', lastSeen: '2h ago', group: 'Home' },
-  { id: '4', name: 'Media Server', status: 'online', os: 'Windows 11 Pro 23H2', agent: 'v1.2.4', cpu: 'AMD Ryzen 7 7700X', ram: '32 GB DDR5', gpu: 'AMD RX 7800 XT', diskUsed: 3800, diskTotal: 4000, uptime: '14d 2h', lastSeen: 'Online now', group: 'Servers' },
-  { id: '5', name: 'Dev Machine', status: 'offline', os: 'Windows 11 Pro 23H2', agent: 'v1.2.4', cpu: 'Intel Core i9-13900K', ram: '128 GB DDR5', gpu: 'NVIDIA RTX 4080', diskUsed: 678, diskTotal: 1000, uptime: '-', lastSeen: '1d ago', group: 'Office' },
-  { id: '6', name: 'Backup NAS', status: 'online', os: 'Windows Server 2022', agent: 'v1.2.4', cpu: 'Xeon E-2388G', ram: '64 GB ECC', gpu: 'Matrox D1450', diskUsed: 8500, diskTotal: 16000, uptime: '45d 18h', lastSeen: 'Online now', group: 'Servers' },
-];
+const mockDevices: any[] = [];
 
 export default function DevicesPage() {
   const [search, setSearch] = useState('');

@@ -74,35 +74,7 @@ const policyTemplates = [
   },
 ];
 
-const mockPolicies = [
-  {
-    id: '1',
-    name: 'High CPU Alert',
-    device: 'Work Desktop',
-    condition: 'CPU > 90% for 5 min',
-    active: true,
-    triggered: 3,
-    lastTriggered: '2 hours ago',
-  },
-  {
-    id: '2',
-    name: 'Low Disk Space',
-    device: 'Gaming PC',
-    condition: 'Disk > 95%',
-    active: true,
-    triggered: 1,
-    lastTriggered: '1 day ago',
-  },
-  {
-    id: '3',
-    name: 'Auto Weekly Cleanup',
-    device: 'All Devices',
-    condition: 'Every Sunday 2 AM',
-    active: false,
-    triggered: 0,
-    lastTriggered: 'Never',
-  },
-];
+const mockPolicies: any[] = [];
 
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState(mockPolicies);

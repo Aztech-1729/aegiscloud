@@ -24,70 +24,7 @@ interface Schedule {
   nextRun: string;
 }
 
-const mockSchedules: Schedule[] = [
-  {
-    id: '1',
-    name: 'Weekly Cleanup',
-    device: 'Work Desktop',
-    type: 'weekly',
-    time: '02:00 AM',
-    day: 'Sunday',
-    commands: [
-      { tool: 'clean_temp', description: 'Clean temporary files' },
-      { tool: 'empty_recycle_bin', description: 'Empty recycle bin' },
-      { tool: 'flush_dns', description: 'Flush DNS cache' },
-    ],
-    active: true,
-    lastRun: '2024-01-14 02:00 AM',
-    nextRun: '2024-01-21 02:00 AM',
-  },
-  {
-    id: '2',
-    name: 'Daily Health Check',
-    device: 'Gaming PC',
-    type: 'daily',
-    time: '06:00 AM',
-    commands: [
-      { tool: 'cpu_usage', description: 'Check CPU usage' },
-      { tool: 'ram_usage', description: 'Check RAM usage' },
-      { tool: 'disk_usage', description: 'Check disk space' },
-      { tool: 'defender_status', description: 'Verify security status' },
-    ],
-    active: true,
-    lastRun: '2024-01-15 06:00 AM',
-    nextRun: '2024-01-16 06:00 AM',
-  },
-  {
-    id: '3',
-    name: 'Monthly System Repair',
-    device: 'Media Server',
-    type: 'monthly',
-    time: '03:00 AM',
-    day: '1st',
-    commands: [
-      { tool: 'run_sfc', description: 'System File Checker' },
-      { tool: 'run_dism', description: 'DISM repair' },
-      { tool: 'restart_explorer', description: 'Restart Explorer' },
-    ],
-    active: true,
-    lastRun: '2024-01-01 03:00 AM',
-    nextRun: '2024-02-01 03:00 AM',
-  },
-  {
-    id: '4',
-    name: 'Storage Analysis',
-    device: 'Work Desktop',
-    type: 'weekly',
-    time: '11:00 PM',
-    day: 'Saturday',
-    commands: [
-      { tool: 'storage_analysis', description: 'Analyze large files' },
-    ],
-    active: false,
-    lastRun: '2024-01-06 11:00 PM',
-    nextRun: '-',
-  },
-];
+const mockSchedules: Schedule[] = [];
 
 const scheduleTypes = [
   { value: 'daily', label: 'Daily', icon: Clock },

@@ -7,16 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search, Download, Trash2, Filter, Calendar } from 'lucide-react';
 
-const mockHistory = [
-  { id: '1', action: 'Clean Temp Files', device: 'Work Desktop', status: 'success', timestamp: '2024-01-15T10:30:00', duration: '12s', user: 'You' },
-  { id: '2', action: 'Restart Explorer', device: 'Work Desktop', status: 'success', timestamp: '2024-01-15T10:20:00', duration: '3s', user: 'You' },
-  { id: '3', action: 'System Info Scan', device: 'Gaming PC', status: 'success', timestamp: '2024-01-15T09:45:00', duration: '8s', user: 'AI' },
-  { id: '4', action: 'Storage Analysis', device: 'Media Server', status: 'failed', timestamp: '2024-01-15T09:30:00', duration: '45s', user: 'AI' },
-  { id: '5', action: 'Flush DNS', device: 'Gaming PC', status: 'success', timestamp: '2024-01-14T18:20:00', duration: '1s', user: 'You' },
-  { id: '6', action: 'Defender Check', device: 'Work Desktop', status: 'success', timestamp: '2024-01-14T15:00:00', duration: '5s', user: 'AI' },
-  { id: '7', action: 'List Processes', device: 'Dev Machine', status: 'cancelled', timestamp: '2024-01-14T12:30:00', duration: '-', user: 'You' },
-  { id: '8', action: 'Uninstall App', device: 'Home Office', status: 'success', timestamp: '2024-01-13T20:15:00', duration: '30s', user: 'You' },
-];
+const mockHistory: any[] = [];
 
 export default function HistoryPage() {
   const [search, setSearch] = useState('');

@@ -13,30 +13,20 @@ import {
 } from 'lucide-react';
 
 const mockOrg = {
-  name: 'Acme Corporation',
-  slug: 'acme-corp',
-  plan: 'enterprise',
-  maxDevices: 1000,
-  maxUsers: 100,
-  currentDevices: 47,
-  currentUsers: 23,
+  name: '',
+  plan: '',
+  status: '',
+  currentUsers: 0,
+  maxUsers: 0,
+  currentDevices: 0,
+  maxDevices: 0,
+  billingCycle: '',
+  nextBilling: ''
 };
 
-const mockDepartments = [
-  { id: '1', name: 'Engineering', members: 8, devices: 15 },
-  { id: '2', name: 'Design', members: 4, devices: 6 },
-  { id: '3', name: 'Operations', members: 6, devices: 12 },
-  { id: '4', name: 'Management', members: 3, devices: 5 },
-  { id: '5', name: 'QA', members: 2, devices: 9 },
-];
+const mockDepartments: any[] = [];
 
-const mockMembers = [
-  { id: '1', name: 'John Doe', email: 'john@acme.com', role: 'owner', department: 'Management', devices: 3, status: 'active' },
-  { id: '2', name: 'Jane Smith', email: 'jane@acme.com', role: 'admin', department: 'Engineering', devices: 2, status: 'active' },
-  { id: '3', name: 'Bob Johnson', email: 'bob@acme.com', role: 'technician', department: 'Operations', devices: 5, status: 'active' },
-  { id: '4', name: 'Alice Williams', email: 'alice@acme.com', role: 'manager', department: 'Design', devices: 2, status: 'active' },
-  { id: '5', name: 'Charlie Brown', email: 'charlie@acme.com', role: 'viewer', department: 'QA', devices: 0, status: 'inactive' },
-];
+const mockMembers: any[] = [];
 
 const roleColors: Record<string, string> = {
   owner: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
