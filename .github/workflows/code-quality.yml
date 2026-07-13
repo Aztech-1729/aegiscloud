@@ -1,0 +1,161 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust-quality:
+    name: Rust Code Quality
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: |
+          cd agent
+          cargo fmt --all -- --check
+
+      - name: Run clippy (all targets, all features)
+        run: |
+          cd agent
+          cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run cargo audit
+        run: |
+          cd agent
+          cargo install cargo-audit
+          cargo audit
+
+      - name: Run cargo deny
+        run: |
+          cd agent
+          cargo install cargo-deny
+          cargo deny check
+
+      - name: Check for unsafe code
+        run: |
+          cd agent
+          if grep -r "unsafe" src/; then
+            echo "Found unsafe code blocks"
+            exit 1
+          fi
+
+  python-quality:
+    name: Python Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install ruff mypy bandit safety pip-audit
+
+      - name: Run ruff linter
+        run: |
+          cd backend
+          ruff check app/ --output-format=github
+
+      - name: Run ruff formatter check
+        run: |
+          cd backend
+          ruff format --check app/
+
+      - name: Run mypy type checking
+        run: |
+          cd backend
+          mypy app/ --ignore-missing-imports --no-strict-optional
+
+      - name: Run bandit security check
+        run: |
+          cd backend
+          bandit -r app/ -ll -ii
+
+      - name: Check for TODO comments
+        run: |
+          if grep -r "TODO\|FIXME\|XXX" backend/app/; then
+            echo "Found TODO/FIXME comments"
+            exit 1
+          fi
+
+  frontend-quality:
+    name: Frontend Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run ESLint
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Type check
+        run: |
+          cd frontend
+          npx tsc --noEmit
+
+      - name: Check for console.log
+        run: |
+          cd frontend
+          if grep -r "console.log" src/; then
+            echo "Found console.log statements"
+            exit 1
+          fi
+
+      - name: Check for TODO comments
+        run: |
+          cd frontend
+          if grep -r "TODO\|FIXME\|XXX" src/; then
+            echo "Found TODO/FIXME comments"
+            exit 1
+          fi
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for broken links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          check-modified-files-only: 'yes'
+
+      - name: Verify API documentation
+        run: |
+          cd backend
+          python -c "import app.main; print('API docs accessible')"
+
+      - name: Check for outdated dependencies
+        run: |
+          cd backend
+          pip install pip-outdated
+          pip-outdated requirements.txt || true
