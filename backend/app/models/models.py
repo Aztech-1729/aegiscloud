@@ -154,6 +154,9 @@ class User(Base):
     avatar_url = Column(String(500), nullable=True)
     plan = Column(SAEnum(PlanType), default=PlanType.free, nullable=False)
     
+    # OAuth
+    google_id = Column(String(255), nullable=True, index=True)
+    github_id = Column(String(255), nullable=True, index=True)
     # Security
     two_factor_enabled = Column(Boolean, default=False)
     two_factor_secret = Column(String(255), nullable=True)

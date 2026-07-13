@@ -77,7 +77,7 @@ async def google_callback(request: Request, db: AsyncSession = Depends(deps.get_
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     
-    return RedirectResponse(url=f"https://aegiscloud.in/dashboard?token={access_token}")
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}&refresh_token={access_token}")
 
 @router.get("/github/login")
 async def github_login(request: Request):
@@ -129,4 +129,4 @@ async def github_callback(request: Request, db: AsyncSession = Depends(deps.get_
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
     
-    return RedirectResponse(url=f"https://aegiscloud.in/dashboard?token={access_token}")
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/auth/callback?access_token={access_token}&refresh_token={access_token}")
