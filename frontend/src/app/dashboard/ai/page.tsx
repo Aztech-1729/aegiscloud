@@ -12,6 +12,12 @@ import {
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
+interface Device {
+  id: string;
+  name: string;
+  status: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -34,12 +40,31 @@ export default function AIChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedActions, setSuggestedActions] = useState<SuggestedAction[]>([]);
-  const [selectedDevice] = useState('Work Desktop');
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const messagesEnd = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    fetch(`${apiUrl}/api/v1/devices`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.ok ? res.json() : [])
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.devices || data.data || []);
+        setDevices(list);
+        if (list.length > 0 && !selectedDeviceId) {
+          setSelectedDeviceId(list[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
     fetch(`${apiUrl}/api/v1/ai/suggestions`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+      headers: { 'Authorization': `Bearer ${token}` }
     }).then(res => res.ok ? res.json() : [])
       .then(data => {
         const list = Array.isArray(data) ? data : (data.suggestions || data.data || []);
@@ -79,7 +104,7 @@ export default function AIChatPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ message: input, device_id: selectedDevice }),
+        body: JSON.stringify({ message: input, device_id: selectedDeviceId || undefined }),
       });
 
       console.log('[AI Chat] Response:', res.status, res.statusText);
@@ -117,7 +142,7 @@ export default function AIChatPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] animate-fade-in">
       <Card className="flex-1 flex flex-col border-white/5 overflow-hidden">
-        <div className="p-4 border-b border-white/5 flex items-center justify-between">
+          <div className="p-4 border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-aegis-500/10">
               <Sparkles className="h-5 w-5 text-aegis-400" />
@@ -126,11 +151,30 @@ export default function AIChatPage() {
               <h2 className="text-sm font-semibold">AI Assistant</h2>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-xs text-muted-foreground">Connected to {selectedDevice}</span>
+                <span className="text-xs text-muted-foreground">
+                  {devices.length > 0
+                    ? `Connected to ${devices.find(d => d.id === selectedDeviceId)?.name || 'Select device'}`
+                    : 'No devices paired'}
+                </span>
               </div>
             </div>
           </div>
-          <Badge variant="success">Online</Badge>
+          <div className="flex items-center gap-2">
+            {devices.length > 1 && (
+              <select
+                value={selectedDeviceId}
+                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                className="text-xs bg-secondary/50 border border-white/10 rounded-lg px-2 py-1 text-muted-foreground"
+              >
+                {devices.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            )}
+            <Badge variant={devices.some(d => d.id === selectedDeviceId && d.status === 'online') ? 'success' : 'secondary'}>
+              {devices.some(d => d.id === selectedDeviceId && d.status === 'online') ? 'Online' : 'Offline'}
+            </Badge>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">

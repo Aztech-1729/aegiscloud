@@ -43,9 +43,7 @@ async def chat(
         )
         device = result.scalar_one_or_none()
     if not device:
-        raise HTTPException(status_code=404, detail="Device not found")
-    if device.status != DeviceStatus.online:
-        raise HTTPException(status_code=400, detail="Device is not online")
+        raise HTTPException(status_code=404, detail="No devices found. Pair a device first.")
 
     response = await ai_service.process_message(data.message, device.name)
     return response
