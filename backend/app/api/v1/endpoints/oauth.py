@@ -7,7 +7,7 @@ from datetime import timedelta
 import logging
 
 from app.core.config import settings
-from app.api import deps
+from app.db.session import get_db
 from app.core.security import create_access_token
 from app.models.models import User
 
@@ -43,7 +43,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/google/callback")
-async def google_callback(request: Request, db: AsyncSession = Depends(deps.get_db)):
+async def google_callback(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
@@ -85,7 +85,7 @@ async def github_login(request: Request):
     return await oauth.github.authorize_redirect(request, redirect_uri)
 
 @router.get("/github/callback")
-async def github_callback(request: Request, db: AsyncSession = Depends(deps.get_db)):
+async def github_callback(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         token = await oauth.github.authorize_access_token(request)
     except OAuthError as error:

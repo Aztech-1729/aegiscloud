@@ -1,0 +1,37 @@
+# Robots.txt for Aegis Cloud
+# https://aegiscloud.in/robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://aegiscloud.in/sitemap.xml
+
+# Allow main pages
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /security
+Allow: /blog
+Allow: /auth/login
+Allow: /auth/register
+Allow: /terms
+Allow: /privacy
+
+# Disallow private areas
+Disallow: /dashboard/*
+Disallow: /auth/2fa
+Disallow: /auth/reset-password
+Disallow: /auth/verify-email
+Disallow: /admin/*
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Block specific bots that don't respect rules
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10

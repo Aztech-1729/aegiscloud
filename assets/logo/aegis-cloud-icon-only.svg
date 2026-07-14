@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 110" width="100" height="110">
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconCloudGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:0.9" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Shield -->
+  <path d="M 50 10 L 90 25 L 90 60 Q 90 85 50 100 Q 10 85 10 60 L 10 25 Z" 
+        fill="url(#iconGradient)" 
+        stroke="#312E81" 
+        stroke-width="2"/>
+  
+  <!-- Cloud element -->
+  <path d="M 30 35 Q 30 28 37 28 Q 37 22 45 22 Q 48 18 55 18 Q 62 18 65 22 Q 73 22 73 28 Q 80 28 80 35 Q 80 42 73 42 L 37 42 Q 30 42 30 35 Z" 
+        fill="url(#iconCloudGradient)" 
+        opacity="0.7"/>
+  
+  <!-- Network nodes -->
+  <circle cx="50" cy="50" r="4" fill="#06B6D4"/>
+  <circle cx="35" cy="62" r="3.5" fill="#A78BFA"/>
+  <circle cx="65" cy="62" r="3.5" fill="#A78BFA"/>
+  <circle cx="50" cy="74" r="3.5" fill="#06B6D4"/>
+  
+  <!-- Connection lines -->
+  <line x1="50" y1="50" x2="35" y2="62" stroke="#06B6D4" stroke-width="1.5"/>
+  <line x1="50" y1="50" x2="65" y2="62" stroke="#06B6D4" stroke-width="1.5"/>
+  <line x1="35" y1="62" x2="50" y2="74" stroke="#A78BFA" stroke-width="1.5"/>
+  <line x1="65" y1="62" x2="50" y2="74" stroke="#A78BFA" stroke-width="1.5"/>
+</svg>

@@ -29,6 +29,13 @@ class PlanType(str, enum.Enum):
     enterprise = "enterprise"
 
 
+class SubscriptionStatus(str, enum.Enum):
+    active = "active"
+    cancelled = "cancelled"
+    past_due = "past_due"
+    trialing = "trialing"
+
+
 class DeviceStatus(str, enum.Enum):
     online = "online"
     offline = "offline"
@@ -413,8 +420,8 @@ class Subscription(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)
-    subscription_id = Column(String(255), unique=True, nullable=True)
-    customer_id = Column(String(255), nullable=True)
+    lemon_squeezy_subscription_id = Column(String(255), unique=True, nullable=True)
+    lemon_squeezy_customer_id = Column(String(255), nullable=True)
     plan = Column(String(20), nullable=False)
     status = Column(String(50), nullable=False)
     current_period_start = Column(DateTime(timezone=True), nullable=True)

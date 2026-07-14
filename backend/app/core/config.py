@@ -41,6 +41,13 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = "http://localhost:3000"
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    LEMONSQUEEZY_API_KEY: str = ""
+    LEMONSQUEEZY_STORE_ID: str = ""
+    LEMONSQUEEZY_WEBHOOK_SECRET: str = ""
+    LEMONSQUEEZY_PRO_MONTHLY_ID: str = ""
+    LEMONSQUEEZY_PRO_YEARLY_ID: str = ""
+    LEMONSQUEEZY_BUSINESS_MONTHLY_ID: str = ""
+    LEMONSQUEEZY_BUSINESS_YEARLY_ID: str = ""
 
     RATE_LIMIT_PER_MINUTE: int = 60
     MAX_DEVICES_FREE: int = 2
