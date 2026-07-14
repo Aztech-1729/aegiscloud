@@ -136,7 +136,7 @@ export default function SkillsPage() {
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Play className="h-3 w-3" />
-                          <span>{skill.steps ?? 0} steps</span>
+                          <span>{skill.steps?.length ?? 0} steps</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
