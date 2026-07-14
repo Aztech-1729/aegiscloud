@@ -1,0 +1,109 @@
+> Aegis Cloud is an AI-powered remote Windows endpoint management platform that lets IT professionals, MSPs, and power users monitor, control, and automate Windows PCs from anywhere through a secure web dashboard.
+
+## Docs
+
+- [Features Overview](https://aegiscloud.in/features): Complete feature breakdown including AI assistant, real-time monitoring, automation, file management, remote terminal, and enterprise security
+- [Pricing Plans](https://aegiscloud.in/pricing): Subscription tiers - Free (2 devices), Pro ($9/mo, 10 devices), Business ($29/mo, 50 devices), Enterprise (custom)
+- [Security](https://aegiscloud.in/security): End-to-end encryption, TLS 1.3, JWT auth, 2FA, RBAC, zero-trust architecture, SOC 2 target, GDPR compliant
+- [About Us](https://aegiscloud.in/about): Company mission, values, team information, and journey
+- [Contact](https://aegiscloud.in/contact): Support channels, sales inquiries, partnership opportunities, and contact form
+
+## Guides & Tutorials
+
+- [How to Manage Multiple Windows PCs Remotely](https://aegiscloud.in/blog/how-to-manage-multiple-windows-pcs-remotely): Comprehensive guide covering setup, monitoring, automation, and best practices for managing multiple Windows devices remotely
+- [AI-Powered Endpoint Management: Complete Guide](https://aegiscloud.in/blog/ai-powered-endpoint-management-complete-guide): In-depth exploration of AI in endpoint management, benefits, implementation strategies, and future trends
+- [Remote Windows Service Management Made Easy](https://aegiscloud.in/blog/remote-windows-service-management-made-easy): Step-by-step tutorial on remotely managing Windows services using natural language commands
+
+## API Reference
+
+- [API Documentation](https://api.aegiscloud.in/docs): Interactive FastAPI Swagger UI with all endpoints
+- [ReDoc Documentation](https://api.aegiscloud.in/redoc): Alternative API documentation format
+- Authentication: JWT Bearer tokens, refresh token rotation
+- WebSocket: Real-time device communication via `wss://api.aegiscloud.in/ws`
+
+## Key Tools & Capabilities
+
+### System Monitoring
+- Real-time CPU, RAM, GPU, disk, network, and battery metrics
+- Live dashboards with auto-refresh
+- Historical performance data and trend analysis
+- Custom alerts and notifications
+
+### AI Assistant
+- Natural language command interface
+- Pre-approved tool execution only (zero-trust)
+- Multi-step reasoning and task automation
+- Context-aware responses with device memory
+
+### Remote Management
+- 29+ approved tools (system_info, cpu_usage, ram_usage, disk_usage, clean_temp, list_processes, kill_process, restart_service, etc.)
+- File browser with upload/download capabilities
+- Remote terminal with PTY support
+- Scheduled task automation
+
+### Automation & Scheduling
+- Daily/weekly/monthly maintenance schedules
+- Event-triggered workflows
+- Policy engine for compliance
+- Batch operations across device groups
+
+## Product Highlights
+
+- **Lightweight Rust Agent**: < 20MB RAM, < 1% CPU, runs as Windows Service
+- **Zero-Trust Security**: AI can only execute pre-approved tools, never arbitrary commands
+- **Plugin Ecosystem**: Extensible with custom plugins via Rust SDK
+- **Cross-Platform Support**: Windows 10/11 (64-bit), future Linux/macOS support
+- **Enterprise-Grade**: Role-based access control, audit logs, compliance reporting
+
+## Use Cases
+
+- **IT Administrators**: Manage hundreds of workstations from a single dashboard
+- **MSPs (Managed Service Providers)**: Serve multiple clients with centralized management
+- **Power Users**: Monitor and maintain multiple personal devices
+- **Small Businesses**: Affordable endpoint management without dedicated IT staff
+- **Developers**: Test and debug Windows applications remotely
+
+## Technical Specifications
+
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: FastAPI, Python 3.13, PostgreSQL 16, Redis 7
+- **Agent**: Rust, tokio async runtime, Windows Service API
+- **Security**: TLS 1.3, AES-256, JWT, TOTP 2FA, Ed25519 signatures
+- **Payment**: Lemon Squeezy (Merchant of Record, handles global tax compliance)
+
+## Quick Start
+
+1. Sign up at [aegiscloud.in](https://aegiscloud.in) (free plan: 2 devices, 5 AI queries/day)
+2. Download Windows Agent (15MB installer)
+3. Install agent on Windows PC (installs as service, auto-connects)
+4. Enter pairing code in dashboard
+5. Start managing remotely via web dashboard or AI assistant
+
+## Pricing Comparison
+
+| Plan | Price | Devices | AI Queries | Key Features |
+|------|-------|---------|------------|--------------|
+| Free | $0/mo | 2 | 5/day | Basic monitoring, community support |
+| Pro | $9/mo | 10 | Unlimited | Advanced monitoring, device groups, priority support |
+| Business | $29/mo | 50 | Unlimited | RBAC, API access, audit logs, SSO |
+| Enterprise | Custom | Unlimited | Unlimited | On-premise, SLA, dedicated support, custom integrations |
+
+## Contact & Support
+
+- **Email**: support@aegiscloud.in
+- **Sales**: sales@aegiscloud.in
+- **Security**: security@aegiscloud.in
+- **Live Chat**: Available on website
+- **Community**: Discord server at discord.gg/aegiscloud
+- **Documentation**: https://aegiscloud.in/docs
+
+## Legal
+
+- [Terms of Service](https://aegiscloud.in/terms)
+- [Privacy Policy](https://aegiscloud.in/privacy) - GDPR compliant
+- [Security Policy](https://aegiscloud.in/security) - Responsible disclosure program
+
+---
+
+**Aegis Cloud — AI-Powered Windows Endpoint Management Platform**  
+*Manage Windows PCs from anywhere with AI. Secure, fast, intelligent.*
