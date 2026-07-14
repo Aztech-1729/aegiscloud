@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/reset-password`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in'}/api/v1/auth/reset-password`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

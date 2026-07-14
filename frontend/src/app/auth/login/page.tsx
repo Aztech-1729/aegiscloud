@@ -23,7 +23,8 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
+      const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -38,7 +39,7 @@ export default function LoginPage() {
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
 
-      const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`, {
+      const userRes = await fetch(`${apiUrl}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${data.access_token}` },
       });
       if (userRes.ok) {

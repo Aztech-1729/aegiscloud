@@ -17,7 +17,8 @@ function CallbackContent() {
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', accessToken);
 
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
+      fetch(`${apiUrl}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
         .then((res) => res.ok ? res.json() : null)

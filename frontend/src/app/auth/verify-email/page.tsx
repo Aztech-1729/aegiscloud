@@ -22,7 +22,7 @@ export default function VerifyEmailPage() {
     const verifyEmail = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/verify-email?token=${token}`,
+          `${process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in'}/api/v1/auth/verify-email?token=${token}`,
           { method: 'POST' }
         );
 
