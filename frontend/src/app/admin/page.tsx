@@ -214,7 +214,7 @@ export default function AdminPage() {
                         <span className="font-medium">{plan}</span>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold">{counts[plan as keyof typeof counts].toLocaleString()}</p>
+                        <p className="font-bold">{(counts[plan as keyof typeof counts] ?? 0).toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">users</p>
                       </div>
                     </div>

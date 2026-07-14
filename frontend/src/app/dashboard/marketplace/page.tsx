@@ -175,7 +175,7 @@ export default function MarketplacePage() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Download className="h-3 w-3" />
-                          <span>{plugin.downloads.toLocaleString()}</span>
+                          <span>{(plugin.downloads ?? 0).toLocaleString()}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
