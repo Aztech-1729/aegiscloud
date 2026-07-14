@@ -70,14 +70,19 @@ export default function AIChatPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${apiUrl}/api/v1/ai/chat`, {
+      const token = localStorage.getItem('access_token');
+      const url = `${apiUrl}/api/v1/ai/chat`;
+      console.log('[AI Chat] POST', url, { hasToken: !!token });
+      const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ message: input, device_id: selectedDevice }),
       });
+
+      console.log('[AI Chat] Response:', res.status, res.statusText);
 
       if (res.ok) {
         const data = await res.json();
@@ -89,17 +94,20 @@ export default function AIChatPage() {
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
+        const errBody = await res.text().catch(() => 'Unable to read body');
+        console.error('[AI Chat] Error response:', res.status, errBody);
         setMessages((prev) => [...prev, {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: 'Sorry, I encountered an error. Please try again.',
+          content: `Error ${res.status}: ${res.statusText}. ${errBody}`,
         }]);
       }
-    } catch {
+    } catch (err) {
+      console.error('[AI Chat] Fetch error:', err);
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Network error. Please check your connection and try again.',
+        content: `Network error: ${err instanceof Error ? err.message : 'Unknown error'}`,
       }]);
     } finally {
       setIsLoading(false);

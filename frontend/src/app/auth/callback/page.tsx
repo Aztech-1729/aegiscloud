@@ -14,8 +14,9 @@ function CallbackContent() {
     const accessToken = searchParams.get('access_token');
     
     if (accessToken) {
+      const refreshToken = searchParams.get('refresh_token') || '';
       localStorage.setItem('access_token', accessToken);
-      localStorage.setItem('refresh_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
       fetch(`${apiUrl}/api/v1/auth/me`, {
