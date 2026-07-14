@@ -93,7 +93,7 @@ export default function MarketplacePage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">New Tools</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{loading ? '-' : plugins.reduce((sum, p) => sum + p.tools, 0)}</div>
+            <div className="text-3xl font-bold">{loading ? '-' : plugins.reduce((sum, p) => sum + (p.tools?.length ?? 0), 0)}</div>
             <p className="text-xs text-muted-foreground mt-1">Additional capabilities</p>
           </CardContent>
         </Card>
@@ -171,7 +171,7 @@ export default function MarketplacePage() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Package className="h-3 w-3" />
-                          <span>{plugin.tools} tools</span>
+                          <span>{(plugin.tools?.length ?? 0)} tools</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Download className="h-3 w-3" />
