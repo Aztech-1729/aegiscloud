@@ -3,25 +3,33 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useAuthStore } from '@/stores';
 
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const setUser = useAuthStore((s) => s.setUser);
 
   useEffect(() => {
     const accessToken = searchParams.get('access_token');
     
     if (accessToken) {
-      // Typically, in a real app you'd save this to localStorage, a cookie, or context
-      localStorage.setItem('auth_token', accessToken);
-      
-      // Redirect to the dashboard with the token
-      router.push(`/dashboard?token=${accessToken}`);
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', accessToken);
+
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+        .then((res) => res.ok ? res.json() : null)
+        .then((user) => {
+          if (user) setUser(user);
+          router.push('/dashboard');
+        })
+        .catch(() => router.push('/dashboard'));
     } else {
-      // If no token is provided, send back to login
       router.push('/auth/login');
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, setUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
