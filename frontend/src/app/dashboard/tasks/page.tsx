@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import {
   Play, RotateCcw, Pause, MoreHorizontal
 } from 'lucide-react';
 
-const mockTasks: any[] = [];
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
 const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' | 'default' }> = {
   completed: { icon: CheckCircle2, color: 'text-emerald-400', variant: 'success' },
@@ -25,9 +25,26 @@ const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; v
 export default function TasksPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = mockTasks.filter(task => {
-    const matchSearch = task.name.toLowerCase().includes(search.toLowerCase()) || task.device.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetch(`${apiUrl}/api/v1/tasks`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    }).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch tasks');
+        return res.json();
+      })
+      .then(data => setTasks(Array.isArray(data) ? data : data.tasks || []))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = tasks.filter(task => {
+    const matchSearch = task.name?.toLowerCase().includes(search.toLowerCase()) || task.device?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || task.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -57,8 +74,23 @@ export default function TasksPage() {
       </div>
 
       <div className="space-y-3">
-        {filtered.map((task) => {
-          const config = statusConfig[task.status];
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+        {!loading && !error && filtered.length === 0 && (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-muted-foreground">No tasks found</p>
+          </div>
+        )}
+        {!loading && !error && filtered.map((task) => {
+          const config = statusConfig[task.status] || statusConfig.pending;
           const StatusIcon = config.icon;
           return (
             <Card key={task.id} className="border-white/5 hover:border-white/10 transition-all">
@@ -72,7 +104,7 @@ export default function TasksPage() {
                         <Badge variant={config.variant} className="text-[10px]">{task.status}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {task.device} · {task.duration} · {new Date(task.startTime).toLocaleTimeString()}
+                        {task.device} · {task.duration} · {task.startTime ? new Date(task.startTime).toLocaleTimeString() : ''}
                       </p>
                     </div>
                   </div>

@@ -1,29 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, Users, Monitor, Cpu, HardDrive, Activity, MoreVertical } from 'lucide-react';
+import { Search, Users, Monitor, Cpu, HardDrive, Activity, MoreVertical, Loader2, AlertCircle } from 'lucide-react';
 
-const mockFleet: any[] = [];
-
-const departments = ['All', 'Engineering', 'Design', 'Sales', 'Operations', 'IT'];
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
 export default function FleetManagementPage() {
+  const [fleet, setFleet] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<string[]>(['All']);
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredFleet = mockFleet.filter(device => {
-    const matchesSearch = device.name.toLowerCase().includes(search.toLowerCase()) ||
-                         device.user.toLowerCase().includes(search.toLowerCase());
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [fleetRes, deptRes] = await Promise.all([
+          fetch(`${apiUrl}/api/v1/fleet`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }),
+          fetch(`${apiUrl}/api/v1/fleet/departments`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }),
+        ]);
+        if (!fleetRes.ok) throw new Error('Failed to fetch fleet');
+        const fleetData = await fleetRes.json();
+        const fleetList = Array.isArray(fleetData) ? fleetData : fleetData.fleet || fleetData.devices || fleetData.data || [];
+        setFleet(fleetList);
+
+        if (deptRes.ok) {
+          const deptData = await deptRes.json();
+          const deptList = Array.isArray(deptData) ? deptData : deptData.departments || deptData.data || [];
+          setDepartments(['All', ...deptList]);
+        }
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filteredFleet = fleet.filter(device => {
+    const matchesSearch = (device.name || '').toLowerCase().includes(search.toLowerCase()) ||
+                         (device.user || '').toLowerCase().includes(search.toLowerCase());
     const matchesDept = selectedDept === 'All' || device.department === selectedDept;
     return matchesSearch && matchesDept;
   });
 
-  const onlineCount = mockFleet.filter(d => d.status === 'online').length;
-  const offlineCount = mockFleet.filter(d => d.status === 'offline').length;
+  const onlineCount = fleet.filter(d => d.status === 'online').length;
+  const offlineCount = fleet.filter(d => d.status === 'offline').length;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -41,8 +71,8 @@ export default function FleetManagementPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Devices</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{mockFleet.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Across {departments.length - 1} departments</p>
+            <div className="text-3xl font-bold">{loading ? '-' : fleet.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Across {loading ? '-' : departments.length - 1} departments</p>
           </CardContent>
         </Card>
         <Card>
@@ -50,8 +80,8 @@ export default function FleetManagementPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Online</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-500">{onlineCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">{Math.round((onlineCount / mockFleet.length) * 100)}% availability</p>
+            <div className="text-3xl font-bold text-green-500">{loading ? '-' : onlineCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">{loading ? '-' : fleet.length ? Math.round((onlineCount / fleet.length) * 100) + '% availability' : 'No data'}</p>
           </CardContent>
         </Card>
         <Card>
@@ -59,7 +89,7 @@ export default function FleetManagementPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Offline</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-muted-foreground">{offlineCount}</div>
+            <div className="text-3xl font-bold text-muted-foreground">{loading ? '-' : offlineCount}</div>
             <p className="text-xs text-muted-foreground mt-1">Last seen varies</p>
           </CardContent>
         </Card>
@@ -97,66 +127,80 @@ export default function FleetManagementPage() {
       {/* Devices Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Devices ({filteredFleet.length})</CardTitle>
+          <CardTitle>Devices ({loading ? '...' : filteredFleet.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {filteredFleet.map(device => (
-              <div
-                key={device.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`w-3 h-3 rounded-full ${
-                    device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'
-                  }`} />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{device.name}</h3>
-                      <Badge variant="secondary" className="text-xs">
-                        {device.department}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {device.user}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <div className="text-sm font-medium">{device.os}</div>
-                    <div className="text-xs text-muted-foreground">{device.cpu}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium">{device.ram}</div>
-                    <div className="text-xs text-muted-foreground">RAM</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {device.policies} policies
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {device.skills} skills
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {device.lastSeen}
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {filteredFleet.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              No devices found matching your criteria.
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <AlertCircle className="h-8 w-8 mb-2 text-destructive" />
+              <p className="text-destructive font-medium">Failed to load fleet</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {filteredFleet.map(device => (
+                  <div
+                    key={device.id}
+                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className={`w-3 h-3 rounded-full ${
+                        device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'
+                      }`} />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold">{device.name}</h3>
+                          <Badge variant="secondary" className="text-xs">
+                            {device.department}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {device.user}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{device.os}</div>
+                        <div className="text-xs text-muted-foreground">{device.cpu}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{device.ram}</div>
+                        <div className="text-xs text-muted-foreground">RAM</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {device.policies} policies
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {device.skills} skills
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {device.lastSeen}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {filteredFleet.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  No devices found matching your criteria.
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

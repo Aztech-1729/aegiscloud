@@ -4,7 +4,80 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Shield, Menu, X } from 'lucide-react';
+import { Shield, Menu, X, LayoutDashboard, User } from 'lucide-react';
+import { useAuthStore } from '@/stores';
+
+function AuthButtons() {
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+
+  if (isLoading) return null;
+
+  if (isAuthenticated) {
+    return (
+      <>
+        <Link href="/dashboard">
+          <Button variant="ghost" size="sm">
+            <LayoutDashboard className="h-4 w-4 mr-1.5" />
+            Dashboard
+          </Button>
+        </Link>
+        <Link href="/dashboard/account">
+          <Button variant="outline" size="sm">
+            <User className="h-4 w-4 mr-1.5" />
+            {user?.name || user?.email || 'Account'}
+          </Button>
+        </Link>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Link href="/auth/login">
+        <Button variant="ghost" size="sm">Sign In</Button>
+      </Link>
+      <Link href="/auth/register">
+        <Button variant="gradient" size="sm">Get Started</Button>
+      </Link>
+    </>
+  );
+}
+
+function MobileAuthButtons() {
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+
+  if (isLoading) return null;
+
+  if (isAuthenticated) {
+    return (
+      <>
+        <Link href="/dashboard">
+          <Button variant="outline" className="w-full">
+            <LayoutDashboard className="h-4 w-4 mr-1.5" />
+            Dashboard
+          </Button>
+        </Link>
+        <Link href="/dashboard/account">
+          <Button variant="ghost" className="w-full">
+            <User className="h-4 w-4 mr-1.5" />
+            {user?.name || user?.email || 'Account'}
+          </Button>
+        </Link>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Link href="/auth/login">
+        <Button variant="ghost" className="w-full">Sign In</Button>
+      </Link>
+      <Link href="/auth/register">
+        <Button variant="gradient" className="w-full">Get Started</Button>
+      </Link>
+    </>
+  );
+}
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -56,12 +129,7 @@ export function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/auth/login">
-              <Button variant="ghost" size="sm">Sign In</Button>
-            </Link>
-            <Link href="/auth/register">
-              <Button variant="gradient" size="sm">Get Started</Button>
-            </Link>
+            <AuthButtons />
           </div>
 
           <button
@@ -86,12 +154,7 @@ export function Navbar() {
                 </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-white/10">
-                <Link href="/auth/login">
-                  <Button variant="ghost" className="w-full">Sign In</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button variant="gradient" className="w-full">Get Started</Button>
-                </Link>
+                <MobileAuthButtons />
               </div>
             </nav>
           </div>

@@ -10,6 +10,17 @@ from app.api.deps.auth import get_current_user
 router = APIRouter()
 
 
+AVAILABLE_MODELS = {
+    "models": ["gpt-4", "gpt-3.5-turbo", "claude-3"],
+    "default": "gpt-4",
+}
+
+
+@router.get("/models")
+async def get_models():
+    return AVAILABLE_MODELS
+
+
 @router.get("", response_model=SettingsResponse)
 async def get_settings(
     current_user: User = Depends(get_current_user),

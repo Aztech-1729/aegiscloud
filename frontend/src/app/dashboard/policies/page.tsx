@@ -1,88 +1,71 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, AlertTriangle, Cpu, HardDrive, Shield, Wifi, Thermometer, Zap } from 'lucide-react';
+import { Plus, AlertTriangle, Cpu, HardDrive, Shield, Wifi, Thermometer, Zap, Loader2, AlertCircle } from 'lucide-react';
 
-const policyTemplates = [
-  {
-    id: 'high-cpu-alert',
-    name: 'High CPU Alert',
-    description: 'Alert when CPU usage exceeds threshold',
-    icon: '🔥',
-    category: 'performance',
-    condition: 'CPU > 90% for 5 min',
-  },
-  {
-    id: 'low-disk-alert',
-    name: 'Low Disk Space',
-    description: 'Alert and cleanup when disk space is critically low',
-    icon: '💾',
-    category: 'storage',
-    condition: 'Disk > 95%',
-  },
-  {
-    id: 'device-offline-alert',
-    name: 'Device Offline Alert',
-    description: 'Notify when a device has been offline for too long',
-    icon: '📡',
-    category: 'monitoring',
-    condition: 'Offline > 24h',
-  },
-  {
-    id: 'defender-disabled-alert',
-    name: 'Security Alert — Defender Disabled',
-    description: 'Critical alert when Windows Defender is disabled',
-    icon: '🛡️',
-    category: 'security',
-    condition: 'Defender = disabled',
-  },
-  {
-    id: 'high-ram-cleanup',
-    name: 'Auto Memory Cleanup',
-    description: 'Automatically clean up when RAM usage is high',
-    icon: '🧠',
-    category: 'performance',
-    condition: 'RAM > 90% for 10 min',
-  },
-  {
-    id: 'scheduled-cleanup',
-    name: 'Auto Weekly Cleanup',
-    description: 'Automatically clean temp files every week',
-    icon: '🧹',
-    category: 'maintenance',
-    condition: 'Every Sunday 2 AM',
-  },
-  {
-    id: 'agent-update-auto',
-    name: 'Auto Agent Update',
-    description: 'Automatically update agent when new version available',
-    icon: '📦',
-    category: 'maintenance',
-    condition: 'Agent version < latest',
-  },
-  {
-    id: 'gpu-temp-alert',
-    name: 'GPU Temperature Alert',
-    description: 'Alert when GPU temperature is dangerously high',
-    icon: '🌡️',
-    category: 'hardware',
-    condition: 'GPU temp > 85°C for 2 min',
-  },
-];
-
-const mockPolicies: any[] = [];
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
 export default function PoliciesPage() {
-  const [policies, setPolicies] = useState(mockPolicies);
+  const [policies, setPolicies] = useState<any[]>([]);
+  const [policyTemplates, setPolicyTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [templatesRes, policiesRes] = await Promise.all([
+          fetch(`${apiUrl}/api/v1/policies/templates`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }),
+          fetch(`${apiUrl}/api/v1/policies`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }),
+        ]);
+        if (!templatesRes.ok || !policiesRes.ok) throw new Error('Failed to fetch policies');
+        const templatesData = await templatesRes.json();
+        const policiesData = await policiesRes.json();
+        setPolicyTemplates(Array.isArray(templatesData) ? templatesData : templatesData.templates || templatesData.data || []);
+        setPolicies(Array.isArray(policiesData) ? policiesData : policiesData.policies || policiesData.data || []);
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const togglePolicy = (id: string) => {
     setPolicies(policies.map(p => 
       p.id === id ? { ...p, active: !p.active } : p
     ));
+  };
+
+  const createPolicy = async (template: any) => {
+    try {
+      const res = await fetch(`${apiUrl}/api/v1/policies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({
+          name: template.name,
+          description: template.description,
+          category: template.category,
+          condition: template.condition,
+          active: false,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create policy');
+      const newPolicy = await res.json();
+      setPolicies(prev => [...prev, newPolicy]);
+    } catch (err: any) {
+      console.error('Create policy error:', err);
+    }
   };
 
   return (
@@ -106,7 +89,17 @@ export default function PoliciesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {policies.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <AlertCircle className="h-8 w-8 mb-2 text-destructive" />
+              <p className="text-destructive font-medium">Failed to load policies</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          ) : policies.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               No active policies. Create one to automate device management.
             </div>
@@ -149,31 +142,43 @@ export default function PoliciesPage() {
           <CardTitle>Policy Templates</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {policyTemplates.map(template => (
-              <div
-                key={template.id}
-                className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="text-3xl">{template.icon}</div>
-                  <Badge variant="secondary" className="text-xs">
-                    {template.category}
-                  </Badge>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <AlertCircle className="h-8 w-8 mb-2 text-destructive" />
+              <p className="text-destructive font-medium">Failed to load templates</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {policyTemplates.map(template => (
+                <div
+                  key={template.id}
+                  className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="text-3xl">{template.icon}</div>
+                    <Badge variant="secondary" className="text-xs">
+                      {template.category}
+                    </Badge>
+                  </div>
+                  <h3 className="font-semibold mb-1">{template.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {template.description}
+                  </p>
+                  <div className="text-xs text-muted-foreground mb-3">
+                    <strong>Condition:</strong> {typeof template.condition === 'string' ? template.condition : JSON.stringify(template.condition)}
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => createPolicy(template)}>
+                    Create Policy
+                  </Button>
                 </div>
-                <h3 className="font-semibold mb-1">{template.name}</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {template.description}
-                </p>
-                <div className="text-xs text-muted-foreground mb-3">
-                  <strong>Condition:</strong> {template.condition}
-                </div>
-                <Button size="sm" variant="outline" className="w-full">
-                  Create Policy
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

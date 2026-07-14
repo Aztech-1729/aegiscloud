@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Folder, FileText, Image, Video, Music, Archive, Code,
   Search, Upload, Download, Trash2, Edit2, ChevronRight,
-  Home, ArrowLeft, MoreHorizontal
+  Home, ArrowLeft, MoreHorizontal, Loader2
 } from 'lucide-react';
 
-const mockFiles: any[] = [];
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
 function getFileIcon(name: string, type: string) {
   if (type === 'folder') return <Folder className="h-5 w-5 text-amber-400" />;
@@ -26,9 +26,27 @@ export default function FilesPage() {
   const [search, setSearch] = useState('');
   const [currentPath, setCurrentPath] = useState(['C:', 'Users', 'User']);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [files, setFiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = mockFiles.filter(f =>
-    f.name.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    const path = currentPath.join('/');
+    fetch(`${apiUrl}/api/v1/files?path=${encodeURIComponent(path)}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    }).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch files');
+        return res.json();
+      })
+      .then(data => setFiles(Array.isArray(data) ? data : data.files || []))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [currentPath]);
+
+  const filtered = files.filter(f =>
+    f.name && f.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -69,7 +87,22 @@ export default function FilesPage() {
               <span className="w-32 text-right">Modified</span>
               <span className="w-10" />
             </div>
-            {filtered.map((file) => (
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {error && (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
+            {!loading && !error && filtered.length === 0 && (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-sm text-muted-foreground">No files found</p>
+              </div>
+            )}
+            {!loading && !error && filtered.map((file) => (
               <div
                 key={file.name}
                 onClick={() => setSelectedFile(file.name)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,24 +9,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Building2, Users, Monitor, Shield, Plus, Search,
-  MoreHorizontal, ChevronRight, Settings, Key, CreditCard
+  MoreHorizontal, ChevronRight, Settings, Key, CreditCard, Loader2, AlertCircle
 } from 'lucide-react';
 
-const mockOrg = {
-  name: '',
-  plan: '',
-  status: '',
-  currentUsers: 0,
-  maxUsers: 0,
-  currentDevices: 0,
-  maxDevices: 0,
-  billingCycle: '',
-  nextBilling: ''
-};
-
-const mockDepartments: any[] = [];
-
-const mockMembers: any[] = [];
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
 const roleColors: Record<string, string> = {
   owner: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
@@ -37,11 +23,47 @@ const roleColors: Record<string, string> = {
 };
 
 export default function OrganizationsPage() {
+  const [org, setOrg] = useState<any>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [searchMembers, setSearchMembers] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredMembers = mockMembers.filter(m =>
-    m.name.toLowerCase().includes(searchMembers.toLowerCase()) ||
-    m.email.toLowerCase().includes(searchMembers.toLowerCase())
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [orgRes, deptRes, membersRes] = await Promise.all([
+          fetch(`${apiUrl}/api/v1/organizations/current`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }),
+          fetch(`${apiUrl}/api/v1/organizations/departments`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }),
+          fetch(`${apiUrl}/api/v1/organizations/members`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }),
+        ]);
+        if (!orgRes.ok) throw new Error('Failed to fetch organization');
+        const orgData = await orgRes.json();
+        setOrg(orgData?.organization || orgData || {});
+
+        if (deptRes.ok) {
+          const deptData = await deptRes.json();
+          setDepartments(Array.isArray(deptData) ? deptData : deptData.departments || deptData.data || []);
+        }
+        if (membersRes.ok) {
+          const membersData = await membersRes.json();
+          setMembers(Array.isArray(membersData) ? membersData : membersData.members || membersData.data || []);
+        }
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filteredMembers = members.filter(m =>
+    m.name?.toLowerCase().includes(searchMembers.toLowerCase()) ||
+    m.email?.toLowerCase().includes(searchMembers.toLowerCase())
   );
 
   return (
@@ -62,6 +84,17 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+          <AlertCircle className="h-8 w-8 mb-2 text-destructive" />
+          <p className="text-destructive font-medium">Failed to load organization</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="border-white/5">
           <CardContent className="p-4">
@@ -69,8 +102,8 @@ export default function OrganizationsPage() {
               <Building2 className="h-4 w-4 text-aegis-400" />
               <span className="text-xs text-muted-foreground">Organization</span>
             </div>
-            <p className="font-semibold">{mockOrg.name}</p>
-            <Badge variant="default" className="text-[10px] mt-1">{mockOrg.plan}</Badge>
+            <p className="font-semibold">{org?.name || 'Unnamed'}</p>
+            <Badge variant="default" className="text-[10px] mt-1">{org?.plan || 'N/A'}</Badge>
           </CardContent>
         </Card>
         <Card className="border-white/5">
@@ -79,9 +112,9 @@ export default function OrganizationsPage() {
               <Users className="h-4 w-4 text-purple-400" />
               <span className="text-xs text-muted-foreground">Members</span>
             </div>
-            <p className="font-semibold">{mockOrg.currentUsers} / {mockOrg.maxUsers}</p>
+            <p className="font-semibold">{org?.currentUsers ?? 0} / {org?.maxUsers ?? 0}</p>
             <div className="h-1.5 rounded-full bg-secondary mt-2">
-              <div className="h-full rounded-full bg-purple-500" style={{ width: `${(mockOrg.currentUsers / mockOrg.maxUsers) * 100}%` }} />
+              <div className="h-full rounded-full bg-purple-500" style={{ width: `${org?.maxUsers ? ((org.currentUsers / org.maxUsers) * 100) : 0}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -91,9 +124,9 @@ export default function OrganizationsPage() {
               <Monitor className="h-4 w-4 text-emerald-400" />
               <span className="text-xs text-muted-foreground">Devices</span>
             </div>
-            <p className="font-semibold">{mockOrg.currentDevices} / {mockOrg.maxDevices}</p>
+            <p className="font-semibold">{org?.currentDevices ?? 0} / {org?.maxDevices ?? 0}</p>
             <div className="h-1.5 rounded-full bg-secondary mt-2">
-              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(mockOrg.currentDevices / mockOrg.maxDevices) * 100}%` }} />
+              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${org?.maxDevices ? ((org.currentDevices / org.maxDevices) * 100) : 0}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -108,11 +141,12 @@ export default function OrganizationsPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       <Tabs defaultValue="members" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="members">Members ({mockMembers.length})</TabsTrigger>
-          <TabsTrigger value="departments">Departments ({mockDepartments.length})</TabsTrigger>
+          <TabsTrigger value="members">Members ({loading ? '...' : members.length})</TabsTrigger>
+          <TabsTrigger value="departments">Departments ({loading ? '...' : departments.length})</TabsTrigger>
           <TabsTrigger value="devices">Devices</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
@@ -128,13 +162,22 @@ export default function OrganizationsPage() {
 
           <Card className="border-white/5">
             <CardContent className="p-0">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredMembers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No members found.
+                </div>
+              ) : (
               <div className="divide-y divide-white/5">
                 {filteredMembers.map((member) => (
                   <div key={member.id} className="flex items-center justify-between p-4 hover:bg-secondary/20 transition-colors">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className="bg-aegis-500/20 text-aegis-400 text-sm font-medium">
-                          {member.name.split(' ').map((n: string) => n[0]).join('')}
+                          {member.name?.split(' ').map((n: string) => n[0]).join('') || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -144,7 +187,7 @@ export default function OrganizationsPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-muted-foreground">{member.department}</span>
-                      <Badge className={`text-[10px] border ${roleColors[member.role]}`}>
+                      <Badge className={`text-[10px] border ${roleColors[member.role] || roleColors.viewer}`}>
                         {member.role}
                       </Badge>
                       <span className="text-xs text-muted-foreground">{member.devices} devices</span>
@@ -155,12 +198,22 @@ export default function OrganizationsPage() {
                   </div>
                 ))}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="departments" className="space-y-3">
-          {mockDepartments.map((dept) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : departments.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No departments found.
+            </div>
+          ) : (
+          departments.map((dept: any) => (
             <Card key={dept.id} className="border-white/5 hover:border-white/10 transition-all cursor-pointer">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -175,7 +228,8 @@ export default function OrganizationsPage() {
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </CardContent>
             </Card>
-          ))}
+          ))
+          )}
           <Card className="border-dashed border-white/10 hover:border-aegis-500/30 transition-all cursor-pointer">
             <CardContent className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
               <Plus className="h-4 w-4" />

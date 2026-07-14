@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Calendar, Clock, Plus, Play, Pause, Trash2, Edit2,
-  ChevronRight, Zap, HardDrive, RefreshCw, Shield
+  ChevronRight, Zap, HardDrive, RefreshCw, Shield, Loader2
 } from 'lucide-react';
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
 interface Schedule {
   id: string;
@@ -24,8 +26,6 @@ interface Schedule {
   nextRun: string;
 }
 
-const mockSchedules: Schedule[] = [];
-
 const scheduleTypes = [
   { value: 'daily', label: 'Daily', icon: Clock },
   { value: 'weekly', label: 'Weekly', icon: Calendar },
@@ -33,9 +33,39 @@ const scheduleTypes = [
   { value: 'once', label: 'One-time', icon: Zap },
 ];
 
+const allTasks = [
+  'Clean temporary files',
+  'Empty Recycle Bin',
+  'Flush DNS',
+  'Run SFC',
+  'Check Defender',
+];
+
 export default function SchedulerPage() {
-  const [schedules, setSchedules] = useState(mockSchedules);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formDevice, setFormDevice] = useState('Work Desktop');
+  const [formType, setFormType] = useState('daily');
+  const [formTime, setFormTime] = useState('02:00');
+  const [formTasks, setFormTasks] = useState<string[]>([]);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetch(`${apiUrl}/api/v1/schedules`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    }).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch schedules');
+        return res.json();
+      })
+      .then(data => setSchedules(Array.isArray(data) ? data : data.schedules || []))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const toggleSchedule = (id: string) => {
     setSchedules(schedules.map(s =>
@@ -45,6 +75,48 @@ export default function SchedulerPage() {
 
   const deleteSchedule = (id: string) => {
     setSchedules(schedules.filter(s => s.id !== id));
+  };
+
+  const handleCreate = async () => {
+    if (!formName.trim()) return;
+    setCreating(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/v1/schedules`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({
+          name: formName,
+          device: formDevice,
+          type: formType,
+          time: formTime,
+          commands: formTasks.map(t => ({ tool: t.toLowerCase().replace(/\s+/g, '_'), description: t })),
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to create schedule');
+      const data = await res.json();
+      if (data.schedule) {
+        setSchedules(prev => [...prev, data.schedule]);
+      }
+      setShowDialog(false);
+      setFormName('');
+      setFormTasks([]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const resetDialog = () => {
+    setShowDialog(false);
+    setFormName('');
+    setFormDevice('Work Desktop');
+    setFormType('daily');
+    setFormTime('02:00');
+    setFormTasks([]);
   };
 
   return (
@@ -101,7 +173,22 @@ export default function SchedulerPage() {
       </div>
 
       <div className="space-y-3">
-        {schedules.map((schedule) => (
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+        {!loading && !error && schedules.length === 0 && (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-muted-foreground">No schedules found</p>
+          </div>
+        )}
+        {!loading && !error && schedules.map((schedule) => (
           <Card key={schedule.id} className="border-white/5 hover:border-white/10 transition-all">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -158,7 +245,7 @@ export default function SchedulerPage() {
         ))}
       </div>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      <Dialog open={showDialog} onOpenChange={(open) => { if (!open) resetDialog(); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Schedule</DialogTitle>
@@ -167,11 +254,19 @@ export default function SchedulerPage() {
           <div className="space-y-4 mt-4">
             <div>
               <label className="text-sm font-medium mb-1.5 block">Schedule Name</label>
-              <Input placeholder="e.g., Weekly Cleanup" />
+              <Input
+                placeholder="e.g., Weekly Cleanup"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+              />
             </div>
             <div>
               <label className="text-sm font-medium mb-1.5 block">Device</label>
-              <select className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm">
+              <select
+                className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                value={formDevice}
+                onChange={(e) => setFormDevice(e.target.value)}
+              >
                 <option>Work Desktop</option>
                 <option>Gaming PC</option>
                 <option>Media Server</option>
@@ -183,7 +278,12 @@ export default function SchedulerPage() {
                 {scheduleTypes.map((type) => (
                   <button
                     key={type.value}
-                    className="flex flex-col items-center gap-1 p-3 rounded-xl border border-white/10 hover:border-aegis-500/30 hover:bg-aegis-500/5 transition-all"
+                    onClick={() => setFormType(type.value)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all ${
+                      formType === type.value
+                        ? 'border-aegis-500/30 bg-aegis-500/5'
+                        : 'border-white/10 hover:border-aegis-500/30 hover:bg-aegis-500/5'
+                    }`}
                   >
                     <type.icon className="h-4 w-4 text-muted-foreground" />
                     <span className="text-xs">{type.label}</span>
@@ -193,22 +293,40 @@ export default function SchedulerPage() {
             </div>
             <div>
               <label className="text-sm font-medium mb-1.5 block">Time</label>
-              <Input type="time" defaultValue="02:00" />
+              <Input
+                type="time"
+                value={formTime}
+                onChange={(e) => setFormTime(e.target.value)}
+              />
             </div>
             <div>
               <label className="text-sm font-medium mb-3 block">Tasks to Run</label>
               <div className="space-y-2">
-                {['Clean temporary files', 'Empty Recycle Bin', 'Flush DNS', 'Run SFC', 'Check Defender'].map((task) => (
+                {allTasks.map((task) => (
                   <label key={task} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/30 cursor-pointer">
-                    <input type="checkbox" className="rounded border-border" />
+                    <input
+                      type="checkbox"
+                      className="rounded border-border"
+                      checked={formTasks.includes(task)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormTasks([...formTasks, task]);
+                        } else {
+                          setFormTasks(formTasks.filter(t => t !== task));
+                        }
+                      }}
+                    />
                     <span className="text-sm">{task}</span>
                   </label>
                 ))}
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-              <Button variant="gradient" onClick={() => setShowDialog(false)}>Create Schedule</Button>
+              <Button variant="outline" onClick={resetDialog}>Cancel</Button>
+              <Button variant="gradient" onClick={handleCreate} disabled={creating || !formName.trim()}>
+                {creating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                Create Schedule
+              </Button>
             </div>
           </div>
         </DialogContent>

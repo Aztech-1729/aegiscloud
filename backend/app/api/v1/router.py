@@ -2,6 +2,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    activity,
     auth,
     devices,
     commands,
@@ -21,6 +22,12 @@ from app.api.v1.endpoints import (
     events,
     certificates,
     oauth,
+    billing,
+    tasks,
+    files,
+    history,
+    device_groups,
+    terminal,
 )
 
 api_router = APIRouter()
@@ -73,11 +80,32 @@ api_router.include_router(plugins.router, prefix="/plugins", tags=["Plugins"])
 # Device Memory (AI context)
 api_router.include_router(memory.router, prefix="/memory", tags=["Memory"])
 
+# Activity feed
+api_router.include_router(activity.router, prefix="/activity", tags=["Activity"])
+
 # Events (Real-time stream)
 api_router.include_router(events.router, prefix="/events", tags=["Events"])
 
 # Certificates (mTLS)
 api_router.include_router(certificates.router, prefix="/certificates", tags=["Certificates"])
+
+# Billing
+api_router.include_router(billing.router, prefix="/billing", tags=["Billing"])
+
+# Tasks
+api_router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])
+
+# File Management
+api_router.include_router(files.router, prefix="/files", tags=["Files"])
+
+# History
+api_router.include_router(history.router, prefix="/history", tags=["History"])
+
+# Device Groups (Fleet)
+api_router.include_router(device_groups.router, prefix="/fleet", tags=["Fleet"])
+
+# Terminal
+api_router.include_router(terminal.router, prefix="/terminal", tags=["Terminal"])
 
 # WebSocket (Real-time)
 api_router.include_router(websocket.router, tags=["WebSocket"])

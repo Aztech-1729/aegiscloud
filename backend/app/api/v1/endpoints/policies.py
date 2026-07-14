@@ -1,7 +1,9 @@
 """Policies API endpoints"""
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.services.policies.engine import policy_engine
@@ -9,6 +11,14 @@ from app.api.deps.auth import get_current_user
 from app.models.models import User, Policy
 
 router = APIRouter()
+
+
+class PolicyCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    category: Optional[str] = "custom"
+    condition: dict = {}
+    active: Optional[bool] = False
 
 
 @router.get("")
@@ -22,6 +32,35 @@ async def list_policies(
     )
     policies = result.scalars().all()
     return {"policies": [p.dict() for p in policies], "total": len(policies)}
+
+
+@router.post("")
+async def create_policy(
+    data: PolicyCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    policy = Policy(
+        user_id=current_user.id,
+        name=data.name,
+        description=data.description or "",
+        category=data.category or "custom",
+        condition=data.condition,
+        actions=[],
+        is_active=data.active,
+    )
+    db.add(policy)
+    await db.flush()
+    return {
+        "id": policy.id,
+        "name": policy.name,
+        "description": policy.description,
+        "category": policy.category,
+        "condition": policy.condition,
+        "active": policy.is_active,
+        "triggered": 0,
+        "lastTriggered": "Never",
+    }
 
 
 @router.get("/templates")

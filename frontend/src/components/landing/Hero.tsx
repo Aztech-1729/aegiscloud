@@ -1,11 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Download, Shield, Monitor, Cpu, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Download, Shield, Monitor, Cpu, CheckCircle2, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/stores';
 
 export function LandingHero() {
+  const { isAuthenticated, isLoading } = useAuthStore();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -53,12 +55,21 @@ export function LandingHero() {
               visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
           >
-            <Link href="/auth/register">
-              <Button variant="gradient" size="xl" className="group w-full sm:w-auto">
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/dashboard">
+                <Button variant="gradient" size="xl" className="group w-full sm:w-auto">
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/auth/register">
+                <Button variant="gradient" size="xl" className="group w-full sm:w-auto">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+            )}
             <a href="/AegisSetup.exe" download>
               <Button variant="outline" size="xl" className="group w-full sm:w-auto">
                 <Download className="mr-2 h-5 w-5" />

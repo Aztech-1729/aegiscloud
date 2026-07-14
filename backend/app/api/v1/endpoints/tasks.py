@@ -5,7 +5,7 @@ from sqlalchemy import select
 from datetime import datetime, timezone
 
 from app.db.session import get_db
-from app.models.models import User, Device, Task, TaskStatus
+from app.models.models import User, Device, Command, CommandStatus
 from app.schemas.schemas import TaskCreate, TaskResponse
 from app.api.deps.auth import get_current_user
 
@@ -33,12 +33,12 @@ async def list_tasks(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Task).where(Task.user_id == current_user.id)
+    query = select(Command).where(Command.user_id == current_user.id)
     if device_id:
-        query = query.where(Task.device_id == device_id)
+        query = query.where(Command.device_id == device_id)
     if status:
-        query = query.where(Task.status == status)
-    query = query.order_by(Task.created_at.desc())
+        query = query.where(Command.status == status)
+    query = query.order_by(Command.created_at.desc())
 
     result = await db.execute(query)
     return result.scalars().all()
@@ -51,7 +51,7 @@ async def get_task(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == current_user.id)
+        select(Command).where(Command.id == task_id, Command.user_id == current_user.id)
     )
     task = result.scalar_one_or_none()
     if not task:
@@ -77,13 +77,12 @@ async def create_task(
     if device.status != "online":
         raise HTTPException(status_code=400, detail="Device is not online")
 
-    task = Task(
+    task = Command(
         user_id=current_user.id,
         device_id=data.device_id,
-        name=data.tool_name.replace("_", " ").title(),
         tool_name=data.tool_name,
         parameters=data.parameters,
-        status=TaskStatus.pending,
+        status=CommandStatus.pending,
     )
     db.add(task)
     await db.flush()
@@ -98,15 +97,15 @@ async def cancel_task(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == current_user.id)
+        select(Command).where(Command.id == task_id, Command.user_id == current_user.id)
     )
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    if task.status not in (TaskStatus.pending, TaskStatus.running):
+    if task.status not in (CommandStatus.pending, CommandStatus.running):
         raise HTTPException(status_code=400, detail="Task cannot be cancelled")
 
-    task.status = TaskStatus.cancelled
+    task.status = CommandStatus.cancelled
     task.completed_at = datetime.now(timezone.utc)
     return task
 
@@ -118,13 +117,13 @@ async def retry_task(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Task).where(Task.id == task_id, Task.user_id == current_user.id)
+        select(Command).where(Command.id == task_id, Command.user_id == current_user.id)
     )
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    task.status = TaskStatus.pending
+    task.status = CommandStatus.pending
     task.progress = 0
     task.result = None
     task.error_message = None

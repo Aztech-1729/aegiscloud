@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Boolean, Integer, Float, DateTime, Text, JSON,
-    ForeignKey, Enum as SAEnum, Index, UniqueConstraint
+    ForeignKey, Index, UniqueConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
@@ -90,7 +90,7 @@ class Organization(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     name = Column(String(255), nullable=False)
     slug = Column(String(100), unique=True, nullable=False, index=True)
-    plan = Column(SAEnum(PlanType), default=PlanType.enterprise, nullable=False)
+    plan = Column(String(20), default=PlanType.enterprise.value, nullable=False)
     max_devices = Column(Integer, default=1000)
     max_users = Column(Integer, default=100)
     settings = Column(JSONB, default=dict)
@@ -129,7 +129,7 @@ class OrgMember(Base):
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     department_id = Column(String(36), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
-    role = Column(SAEnum(OrgRole), default=OrgRole.technician, nullable=False)
+    role = Column(String(20), default=OrgRole.technician.value, nullable=False)
     is_active = Column(Boolean, default=True)
     joined_at = Column(DateTime(timezone=True), default=utcnow)
 
@@ -152,7 +152,11 @@ class User(Base):
     name = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
     avatar_url = Column(String(500), nullable=True)
-    plan = Column(SAEnum(PlanType), default=PlanType.free, nullable=False)
+    plan = Column(String(20), default=PlanType.free.value, nullable=False)
+    
+    # OAuth
+    google_id = Column(String(255), nullable=True, index=True)
+    github_id = Column(String(255), nullable=True, index=True)
     
     # OAuth
     google_id = Column(String(255), nullable=True, index=True)
@@ -173,7 +177,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     devices = relationship("Device", back_populates="user", cascade="all, delete-orphan")
-    commands = relationship("Command", back_populates="user")
+    commands = relationship("Command", back_populates="user", foreign_keys="Command.user_id")
 
 
 # ============= DEVICE MODELS (Phase 1, 2, 5) =============
@@ -199,7 +203,7 @@ class Device(Base):
     # Device info
     name = Column(String(255), nullable=False)
     hostname = Column(String(255), nullable=True)
-    status = Column(SAEnum(DeviceStatus), default=DeviceStatus.offline)
+    status = Column(String(20), default=DeviceStatus.offline.value)
     
     # System info
     windows_version = Column(String(100), nullable=True)
@@ -280,8 +284,8 @@ class Command(Base):
     tool_version = Column(String(20), default="1.0.0")
     
     # Execution
-    status = Column(SAEnum(CommandStatus), default=CommandStatus.queued, nullable=False)
-    priority = Column(SAEnum(CommandPriority), default=CommandPriority.normal)
+    status = Column(String(20), default=CommandStatus.queued.value, nullable=False)
+    priority = Column(String(20), default=CommandPriority.normal.value)
     
     # Parameters (typed JSON)
     parameters = Column(JSONB, nullable=False, default=dict)
@@ -319,9 +323,9 @@ class Command(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
-    user = relationship("User", back_populates="commands")
+    user = relationship("User", back_populates="commands", foreign_keys=[user_id])
     device = relationship("Device", back_populates="commands")
-    schedule = relationship("Schedule", back_populates="commands")
+    schedule = relationship("Schedule", back_populates="commands_list")
 
 
 class ToolDefinition(Base):
@@ -365,7 +369,7 @@ class Schedule(Base):
     description = Column(Text, nullable=True)
     
     # Schedule configuration
-    schedule_type = Column(SAEnum(ScheduleType), nullable=False)
+    schedule_type = Column(String(20), nullable=False)
     cron_expression = Column(String(100), nullable=True)  # For cron type
     time_of_day = Column(String(5), nullable=True)  # HH:MM
     day_of_week = Column(Integer, nullable=True)  # 0-6 for weekly
@@ -392,7 +396,7 @@ class Notification(Base):
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    type = Column(SAEnum(NotificationType), nullable=False)
+    type = Column(String(20), nullable=False)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
     read = Column(Boolean, default=False)
@@ -411,7 +415,7 @@ class Subscription(Base):
     organization_id = Column(String(36), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True)
     subscription_id = Column(String(255), unique=True, nullable=True)
     customer_id = Column(String(255), nullable=True)
-    plan = Column(SAEnum(PlanType), nullable=False)
+    plan = Column(String(20), nullable=False)
     status = Column(String(50), nullable=False)
     current_period_start = Column(DateTime(timezone=True), nullable=True)
     current_period_end = Column(DateTime(timezone=True), nullable=True)
@@ -698,3 +702,14 @@ class PolicyAction(Base):
     success = Column(Boolean, default=True)
     error_message = Column(Text, nullable=True)
     triggered_at = Column(DateTime(timezone=True), default=utcnow)
+
+
+class DeviceGroup(Base):
+    __tablename__ = "device_groups"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    group_type = Column(String(50), default="static")
+    color = Column(String(7), default="#6366f1")
+    created_at = Column(DateTime(timezone=True), default=utcnow)

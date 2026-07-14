@@ -4,9 +4,51 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Shield, Key, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useAuthStore } from '@/stores';
+import { useState, useEffect } from 'react';
+import { User, Mail, Shield, Key, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
+
+function getInitials(name: string): string {
+  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function formatPlan(plan: string): string {
+  return plan.charAt(0).toUpperCase() + plan.slice(1) + ' Plan Member';
+}
 
 export default function AccountPage() {
+  const { user, setUser } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) return;
+    setLoading(true);
+    fetch(`${apiUrl}/api/v1/auth/me`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch user');
+        return res.json();
+      })
+      .then((data) => {
+        setUser(data.user || data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [user, setUser]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-aegis-500" />
+      </div>
+    );
+  }
+
+  const name = user?.name || 'User';
+  const email = user?.email || '';
+  const plan = user?.plan || 'free';
+
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <Card className="border-white/5">
@@ -17,11 +59,11 @@ export default function AccountPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4 mb-6">
             <div className="h-16 w-16 rounded-full bg-gradient-to-br from-aegis-500 to-purple-500 flex items-center justify-center text-xl font-bold text-white">
-              JD
+              {getInitials(name)}
             </div>
             <div>
-              <h3 className="font-semibold">John Doe</h3>
-              <p className="text-sm text-muted-foreground">Pro Plan Member</p>
+              <h3 className="font-semibold">{name}</h3>
+              <p className="text-sm text-muted-foreground">{formatPlan(plan)}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -29,13 +71,13 @@ export default function AccountPage() {
               <label className="text-sm font-medium mb-1.5 block flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" /> Full Name
               </label>
-              <Input defaultValue="John Doe" />
+              <Input defaultValue={name} />
             </div>
             <div>
               <label className="text-sm font-medium mb-1.5 block flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" /> Email
               </label>
-              <Input defaultValue="john@example.com" type="email" />
+              <Input defaultValue={email} type="email" />
             </div>
           </div>
           <Button variant="gradient" size="sm">Save Changes</Button>
@@ -78,7 +120,7 @@ export default function AccountPage() {
               <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">Email Verification</p>
-                <p className="text-xs text-muted-foreground">john@example.com is verified</p>
+                <p className="text-xs text-muted-foreground">{email} is verified</p>
               </div>
             </div>
             <Badge variant="success">Verified</Badge>

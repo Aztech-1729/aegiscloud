@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { QrCode, Copy, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
+
 export default function PairDevicePage() {
   const [pairCode, setPairCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
@@ -17,7 +19,7 @@ export default function PairDevicePage() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/devices/pair-code`,
+        `${apiUrl}/api/v1/devices/pair-code`,
         {
           method: 'POST',
           headers: {
@@ -48,7 +50,7 @@ export default function PairDevicePage() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/devices/pair`,
+        `${apiUrl}/api/v1/devices/pair`,
         {
           method: 'POST',
           headers: {

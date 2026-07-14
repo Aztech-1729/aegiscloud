@@ -1,24 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useThemeStore } from '@/stores';
 import {
-  Moon, Sun, Monitor, Bell, Globe, Clock, Palette,
+  Moon, Sun, Monitor, Globe, Clock,
   Save, RotateCcw
 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useThemeStore();
-  const [notifications, setNotifications] = useState({
-    email: true,
-    browser: true,
-    taskCompleted: true,
-    deviceOffline: true,
-    updateAvailable: true,
-  });
 
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
@@ -58,41 +49,6 @@ export default function SettingsPage() {
 
       <Card className="border-white/5">
         <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>Choose what notifications you receive</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[
-            { key: 'email', label: 'Email Notifications', desc: 'Receive notifications via email' },
-            { key: 'browser', label: 'Browser Notifications', desc: 'Show desktop notifications' },
-            { key: 'taskCompleted', label: 'Task Completed', desc: 'When a task finishes running' },
-            { key: 'deviceOffline', label: 'Device Offline', desc: 'When a device goes offline' },
-            { key: 'updateAvailable', label: 'Update Available', desc: 'When agent updates are available' },
-          ].map((item) => (
-            <div key={item.key} className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
-              </div>
-              <button
-                onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key as keyof typeof notifications] })}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  notifications[item.key as keyof typeof notifications] ? 'bg-aegis-600' : 'bg-secondary'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    notifications[item.key as keyof typeof notifications] ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className="border-white/5">
-        <CardHeader>
           <CardTitle>Preferences</CardTitle>
           <CardDescription>General application settings</CardDescription>
         </CardHeader>
@@ -118,16 +74,6 @@ export default function SettingsPage() {
               <option value="America/New_York">EST (UTC-5)</option>
               <option value="Europe/London">GMT (UTC+0)</option>
               <option value="America/Los_Angeles">PST (UTC-8)</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium mb-1.5 block flex items-center gap-2">
-              <Palette className="h-4 w-4 text-muted-foreground" /> AI Model
-            </label>
-            <select className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm">
-              <option value="gpt-4">GPT-4 (Recommended)</option>
-              <option value="gpt-3.5">GPT-3.5 Turbo</option>
-              <option value="claude">Claude 3</option>
             </select>
           </div>
         </CardContent>

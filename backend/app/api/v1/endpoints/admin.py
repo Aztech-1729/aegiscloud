@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.db.session import get_db
-from app.models.models import User, Device, Task, Subscription
+from app.models.models import User, Device, Command, Subscription
 from app.schemas.schemas import AdminUserResponse
 from app.api.deps.auth import get_admin_user
 
@@ -32,7 +32,7 @@ async def admin_stats(
 ):
     user_count = await db.execute(select(func.count(User.id)))
     device_count = await db.execute(select(func.count(Device.id)))
-    task_count = await db.execute(select(func.count(Task.id)))
+    task_count = await db.execute(select(func.count(Command.id)))
     active_subscriptions = await db.execute(
         select(func.count(Subscription.id)).where(Subscription.status == "active")
     )
@@ -83,6 +83,6 @@ async def admin_tasks(
 ):
     offset = (page - 1) * per_page
     result = await db.execute(
-        select(Task).order_by(Task.created_at.desc()).offset(offset).limit(per_page)
+        select(Command).order_by(Command.created_at.desc()).offset(offset).limit(per_page)
     )
     return result.scalars().all()

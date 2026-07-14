@@ -5,10 +5,29 @@ from sqlalchemy import select
 
 from app.db.session import get_db
 from app.models.models import User, Device
-from app.schemas.schemas import FileEntry
 from app.api.deps.auth import get_current_user
 
 router = APIRouter()
+
+
+@router.get("")
+async def list_files_root(
+    path: str = "~/Desktop",
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    devices = await db.execute(
+        select(Device).where(Device.user_id == current_user.id)
+    )
+    user_devices = devices.scalars().all()
+
+    mock_files = [
+        {"name": "Documents", "path": f"{path}/Documents", "type": "folder", "size": 0, "modified": "2024-01-15", "is_directory": True},
+        {"name": "Downloads", "path": f"{path}/Downloads", "type": "folder", "size": 0, "modified": "2024-01-14", "is_directory": True},
+        {"name": "report.docx", "path": f"{path}/report.docx", "type": "file", "size": 2457600, "modified": "2024-01-15", "is_directory": False},
+        {"name": "notes.txt", "path": f"{path}/notes.txt", "type": "file", "size": 4096, "modified": "2024-01-13", "is_directory": False},
+    ]
+    return mock_files
 
 
 class FileEntry:

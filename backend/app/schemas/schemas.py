@@ -144,7 +144,7 @@ class TaskResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    device_id: str
+    device_id: Optional[str] = None
     message: str = Field(min_length=1, max_length=2000)
 
 

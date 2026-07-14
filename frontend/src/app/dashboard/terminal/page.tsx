@@ -10,30 +10,42 @@ import {
   Download, Settings, AlertTriangle
 } from 'lucide-react';
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
+
 export default function TerminalPage() {
   const [connected, setConnected] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState('Work Desktop');
+  const [selectedDevice, setSelectedDevice] = useState('');
   const [recording, setRecording] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [commandInput, setCommandInput] = useState('');
   const [history, setHistory] = useState<Array<{ type: 'input' | 'output'; content: string }>>([]);
+  const [devices, setDevices] = useState<Array<{ name: string; status: string }>>([]);
+  const [devicesLoading, setDevicesLoading] = useState(true);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const devices = [
-    { name: 'Work Desktop', status: 'online' },
-    { name: 'Gaming PC', status: 'online' },
-    { name: 'Media Server', status: 'online' },
-    { name: 'Home Office', status: 'offline' },
-  ];
+  useEffect(() => {
+    fetch(`${apiUrl}/api/v1/devices`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    }).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch devices');
+        return res.json();
+      })
+      .then(data => {
+        const devs = Array.isArray(data) ? data : data.devices || [];
+        setDevices(devs);
+        if (devs.length > 0) setSelectedDevice(devs[0].name);
+      })
+      .catch(() => {})
+      .finally(() => setDevicesLoading(false));
+  }, []);
 
   const connect = () => {
     setConnected(true);
     setHistory([
-      { type: 'output', content: 'Microsoft Windows [Version 10.0.22631.4460]' },
-      { type: 'output', content: '(c) Microsoft Corporation. All rights reserved.' },
+      { type: 'output', content: 'Connected to ' + selectedDevice },
       { type: 'output', content: '' },
-      { type: 'output', content: 'C:\\Users\\User>' },
+      { type: 'output', content: '$' },
     ]);
   };
 
@@ -42,46 +54,43 @@ export default function TerminalPage() {
     setHistory([]);
   };
 
-  const executeCommand = () => {
+  const executeCommand = async () => {
     if (!commandInput.trim()) return;
 
     const newHistory = [
-      ...history.slice(0, -1), // Remove last prompt
+      ...history.slice(0, -1),
       { type: 'input' as const, content: commandInput },
     ];
 
-    // Simulate command output
-    const output = getCommandOutput(commandInput);
-    newHistory.push({ type: 'output', content: output });
-    newHistory.push({ type: 'output', content: '' });
-    newHistory.push({ type: 'output', content: 'C:\\Users\\User>' });
+    setHistory([...newHistory, { type: 'output', content: 'Executing...' }]);
 
-    setHistory(newHistory);
+    try {
+      const res = await fetch(`${apiUrl}/api/v1/terminal/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({ device: selectedDevice, command: commandInput }),
+      });
+      const data = await res.json();
+      const output = data.output || data.result || 'Command executed.';
+      setHistory([
+        ...newHistory,
+        { type: 'output', content: output },
+        { type: 'output', content: '' },
+        { type: 'output', content: '$' },
+      ]);
+    } catch {
+      setHistory([
+        ...newHistory,
+        { type: 'output', content: 'Error: Failed to execute command.' },
+        { type: 'output', content: '' },
+        { type: 'output', content: '$' },
+      ]);
+    }
+
     setCommandInput('');
-  };
-
-  const getCommandOutput = (cmd: string): string => {
-    const lower = cmd.toLowerCase().trim();
-    if (lower === 'dir') {
-      return ' Volume in drive C has no label.\n Directory of C:\\Users\\User\n\n01/15/2024  10:30 AM    <DIR>          Desktop\n01/15/2024  09:00 AM    <DIR>          Documents\n01/14/2024  03:45 PM    <DIR>          Downloads\n01/13/2024  11:20 AM    <DIR>          Pictures\n               0 File(s)              0 bytes\n               4 Dir(s)  234,567,890,432 bytes free';
-    }
-    if (lower === 'systeminfo') {
-      return 'Host Name:                 WORK-DESKTOP\nOS Name:                   Microsoft Windows 11 Pro\nOS Version:                10.0.22631 N/A Build 22631\nSystem Manufacturer:       Custom\nSystem Model:              Desktop\nProcessor(s):              1 Processor(s) Installed.\n                           [01]: Intel64 Family 6 Model 183 Stepping 1 Genu\nineIntel ~3400 Mhz\nTotal Physical Memory:     32,768 MB\nAvailable Physical Memory: 11,244 MB';
-    }
-    if (lower.startsWith('ipconfig')) {
-      return 'Windows IP Configuration\n\nEthernet adapter Ethernet:\n   Connection-specific DNS Suffix  . : local\n   IPv4 Address. . . . . . . . . . . : 192.168.1.105\n   Subnet Mask . . . . . . . . . . . : 255.255.255.0\n   Default Gateway . . . . . . . . . : 192.168.1.1';
-    }
-    if (lower === 'help') {
-      return 'Available commands: dir, systeminfo, ipconfig, tasklist, cls, help, exit\nNote: This is a secure terminal. All commands are recorded.';
-    }
-    if (lower === 'tasklist') {
-      return 'Image Name                     PID Session Name        Mem Usage\n========================= ======== ================ ============\nSystem Idle Process              0 Services                   8 K\nSystem                           4 Services                 144 K\nchrome.exe                   12840 Console                 345,672 K\nCode.exe                      8234 Console                 234,568 K\nexplorer.exe                  5432 Console                  89,234 K';
-    }
-    if (lower === 'cls') {
-      setHistory([{ type: 'output', content: 'C:\\Users\\User>' }]);
-      return '';
-    }
-    return `'${cmd}' is not recognized as an internal or external command.\nType 'help' for available commands.`;
   };
 
   useEffect(() => {
@@ -109,14 +118,18 @@ export default function TerminalPage() {
             className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             disabled={connected}
           >
-            {devices.map((d) => (
-              <option key={d.name} value={d.name} disabled={d.status === 'offline'}>
-                {d.name} ({d.status})
-              </option>
-            ))}
+            {devicesLoading ? (
+              <option>Loading...</option>
+            ) : (
+              devices.map((d) => (
+                <option key={d.name} value={d.name} disabled={d.status === 'offline'}>
+                  {d.name} ({d.status})
+                </option>
+              ))
+            )}
           </select>
           {!connected ? (
-            <Button variant="gradient" size="sm" onClick={connect}>
+            <Button variant="gradient" size="sm" onClick={connect} disabled={devicesLoading}>
               Connect
             </Button>
           ) : (
@@ -195,7 +208,7 @@ export default function TerminalPage() {
 
           {connected && (
             <div className="flex items-center gap-2 p-3 border-t border-white/5 bg-[#0c0c0c]">
-              <span className="text-emerald-400 font-mono text-sm">C:\Users\User&gt;</span>
+              <span className="text-emerald-400 font-mono text-sm">$</span>
               <input
                 ref={inputRef}
                 type="text"

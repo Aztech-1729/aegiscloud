@@ -11,7 +11,48 @@ from app.api.deps.auth import get_current_user
 router = APIRouter()
 
 
-@router.get("", response_model=List[DeviceGroupResponse])
+@router.get("/departments")
+async def list_departments(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(DeviceGroup.name).where(DeviceGroup.user_id == current_user.id)
+    )
+    return result.scalars().all()
+
+
+@router.get("")
+async def list_fleet(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Device).where(Device.user_id == current_user.id)
+    )
+    devices = result.scalars().all()
+    fleet = []
+    for device in devices:
+        dept_name = None
+        if device.group_id:
+            grp = await db.execute(
+                select(DeviceGroup.name).where(DeviceGroup.id == device.group_id)
+            )
+            dept_name = grp.scalar_one_or_none()
+        fleet.append({
+            "id": device.id,
+            "name": device.name,
+            "status": device.status,
+            "os": device.os,
+            "user": current_user.name or current_user.email,
+            "department": dept_name or "Ungrouped",
+            "ip_address": getattr(device, 'ip_address', None) or None,
+            "last_seen": getattr(device, 'last_seen', None),
+        })
+    return fleet
+
+
+@router.get("/groups", response_model=List[DeviceGroupResponse])
 async def list_groups(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

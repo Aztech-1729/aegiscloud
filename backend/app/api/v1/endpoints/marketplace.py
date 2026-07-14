@@ -10,15 +10,15 @@ import hashlib
 import json
 
 from app.db.session import get_db
-from app.models.models import Plugin, PluginVersion, User
-from app.api.v1.deps.auth import get_current_user
+from app.models.models import Plugin, User
+from app.api.deps.auth import get_current_user
 from app.services.plugins.validator import plugin_validator
 from app.schemas.schemas import PluginManifest, PluginListing
 
 router = APIRouter()
 
 
-@router.get("/plugins", response_model=List[PluginListing])
+@router.get("")
 async def list_plugins(
     category: Optional[str] = None,
     search: Optional[str] = None,
@@ -27,53 +27,49 @@ async def list_plugins(
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
-    """List all published plugins."""
-    query = select(Plugin).where(Plugin.is_published == True)
-    
+    """List all plugins."""
+    query = select(Plugin)
+
     if category:
         query = query.where(Plugin.category == category)
-    
+
     if search:
         query = query.where(
-            Plugin.name.ilike(f"%{search}%") | 
+            Plugin.name.ilike(f"%{search}%") |
             Plugin.description.ilike(f"%{search}%")
         )
-    
-    # Apply sorting
+
     if sort_by == "popular":
         query = query.order_by(Plugin.download_count.desc())
     elif sort_by == "rating":
         query = query.order_by(Plugin.rating.desc())
     elif sort_by == "newest":
         query = query.order_by(Plugin.created_at.desc())
-    
+
     query = query.offset(offset).limit(limit)
-    
+
     result = await db.execute(query)
     plugins = result.scalars().all()
-    
+
     return [
-        PluginListing(
-            id=p.id,
-            name=p.name,
-            version=p.latest_version.version,
-            author=p.author.name,
-            description=p.description,
-            category=p.category,
-            download_count=p.download_count,
-            rating=p.rating,
-            rating_count=p.rating_count,
-            size_bytes=p.latest_version.size_bytes,
-            published_at=p.created_at.isoformat(),
-            updated_at=p.updated_at.isoformat(),
-            tools=[t.name for t in p.latest_version.manifest.tools],
-            tags=p.tags,
-        )
+        {
+            "id": p.id,
+            "name": p.name,
+            "version": p.version,
+            "author": p.author,
+            "description": p.description,
+            "category": p.category,
+            "download_count": p.download_count,
+            "rating": p.rating,
+            "size_mb": p.size_mb,
+            "tools": p.tools or [],
+            "published_at": p.created_at.isoformat(),
+        }
         for p in plugins
     ]
 
 
-@router.get("/plugins/{plugin_id}")
+@router.get("/{plugin_id}")
 async def get_plugin(
     plugin_id: str,
     db: AsyncSession = Depends(get_db),
@@ -83,58 +79,27 @@ async def get_plugin(
         select(Plugin).where(Plugin.plugin_id == plugin_id)
     )
     plugin = result.scalar_one_or_none()
-    
+
     if not plugin:
         raise HTTPException(status_code=404, detail="Plugin not found")
-    
-    # Increment view count
-    plugin.view_count = (plugin.view_count or 0) + 1
-    
+
     return {
         "id": plugin.id,
         "plugin_id": plugin.plugin_id,
         "name": plugin.name,
-        "author": plugin.author.name,
+        "author": plugin.author,
         "description": plugin.description,
-        "homepage": plugin.homepage,
-        "repository": plugin.repository,
-        "license": plugin.license,
         "category": plugin.category,
-        "version": plugin.latest_version.version,
+        "version": plugin.version,
         "download_count": plugin.download_count,
         "rating": plugin.rating,
-        "rating_count": plugin.rating_count,
-        "tools": [
-            {
-                "name": t.name,
-                "description": t.description,
-                "category": t.category,
-                "risk_level": t.risk_level,
-                "requires_approval": t.requires_approval,
-            }
-            for t in plugin.latest_version.manifest.tools
-        ],
-        "versions": [
-            {
-                "version": v.version,
-                "published_at": v.created_at.isoformat(),
-                "size_bytes": v.size_bytes,
-            }
-            for v in plugin.versions
-        ],
-        "reviews": [
-            {
-                "user": r.user.name,
-                "rating": r.rating,
-                "comment": r.comment,
-                "created_at": r.created_at.isoformat(),
-            }
-            for r in plugin.reviews[:10]
-        ],
+        "tools": plugin.tools or [],
+        "size_mb": plugin.size_mb,
+        "created_at": plugin.created_at.isoformat(),
     }
 
 
-@router.post("/plugins/publish")
+@router.post("/publish")
 async def publish_plugin(
     file: UploadFile = File(...),
     api_key: str = Form(...),
@@ -192,56 +157,42 @@ async def publish_plugin(
     return {
         "id": plugin.id,
         "plugin_id": plugin.plugin_id,
-        "version": plugin.latest_version.version,
+        "version": plugin.version,
         "message": "Plugin published successfully",
         "warnings": validation["warnings"],
     }
 
 
-@router.post("/plugins/{plugin_id}/download")
+@router.post("/{plugin_id}/download")
 async def download_plugin(
     plugin_id: str,
-    version: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Download a plugin binary."""
+    """Download a plugin."""
     result = await db.execute(
         select(Plugin).where(Plugin.plugin_id == plugin_id)
     )
     plugin = result.scalar_one_or_none()
-    
+
     if not plugin:
         raise HTTPException(status_code=404, detail="Plugin not found")
-    
-    # Get version
-    if version:
-        result = await db.execute(
-            select(PluginVersion).where(
-                PluginVersion.plugin_id == plugin.id,
-                PluginVersion.version == version,
-            )
-        )
-        plugin_version = result.scalar_one_or_none()
-    else:
-        plugin_version = plugin.latest_version
-    
-    if not plugin_version:
-        raise HTTPException(status_code=404, detail="Version not found")
-    
-    # Increment download count
+
     plugin.download_count = (plugin.download_count or 0) + 1
-    plugin_version.download_count = (plugin_version.download_count or 0) + 1
-    
-    # Return plugin package
+    await db.commit()
+
     return {
-        "manifest": plugin_version.manifest,
-        "binary": plugin_version.binary,
-        "binary_hash": plugin_version.binary_hash,
-        "signature": plugin_version.signature,
+        "id": plugin.id,
+        "name": plugin.name,
+        "version": plugin.version,
+        "author": plugin.author,
+        "description": plugin.description,
+        "tools": plugin.tools or [],
+        "download_count": plugin.download_count,
+        "size_mb": plugin.size_mb,
     }
 
 
-@router.post("/plugins/{plugin_id}/rate")
+@router.post("/{plugin_id}/rate")
 async def rate_plugin(
     plugin_id: str,
     rating: int = Form(...),
@@ -249,60 +200,25 @@ async def rate_plugin(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Rate and review a plugin."""
-    # Validate rating
+    """Rate a plugin."""
     if rating < 1 or rating > 5:
         raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
-    
+
     result = await db.execute(
         select(Plugin).where(Plugin.plugin_id == plugin_id)
     )
     plugin = result.scalar_one_or_none()
-    
+
     if not plugin:
         raise HTTPException(status_code=404, detail="Plugin not found")
-    
-    # Create or update review
-    from app.models.models import PluginReview
-    
-    result = await db.execute(
-        select(PluginReview).where(
-            PluginReview.plugin_id == plugin.id,
-            PluginReview.user_id == current_user.id,
-        )
-    )
-    review = result.scalar_one_or_none()
-    
-    if review:
-        review.rating = rating
-        review.comment = comment
-    else:
-        review = PluginReview(
-            plugin_id=plugin.id,
-            user_id=current_user.id,
-            rating=rating,
-            comment=comment,
-        )
-        db.add(review)
-    
-    # Update plugin rating
-    result = await db.execute(
-        select(
-            func.avg(PluginReview.rating),
-            func.count(PluginReview.id),
-        ).where(PluginReview.plugin_id == plugin.id)
-    )
-    avg_rating, rating_count = result.one()
-    
-    plugin.rating = float(avg_rating) if avg_rating else 0.0
-    plugin.rating_count = rating_count or 0
-    
+
+    plugin.rating = float(rating)
+
     await db.commit()
-    
+
     return {
         "message": "Rating submitted",
         "plugin_rating": plugin.rating,
-        "rating_count": plugin.rating_count,
     }
 
 

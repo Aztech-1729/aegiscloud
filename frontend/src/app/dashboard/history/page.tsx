@@ -1,22 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, Download, Trash2, Filter, Calendar } from 'lucide-react';
+import { Search, Download, Trash2, Filter, Calendar, Loader2 } from 'lucide-react';
 
-const mockHistory: any[] = [];
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
 
 export default function HistoryPage() {
   const [search, setSearch] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const filtered = mockHistory.filter(h =>
-    h.action.toLowerCase().includes(search.toLowerCase()) ||
-    h.device.toLowerCase().includes(search.toLowerCase())
-  );
+  const fetchHistory = () => {
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    const qs = params.toString();
+    fetch(`${apiUrl}/api/v1/history${qs ? `?${qs}` : ''}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    }).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch history');
+        return res.json();
+      })
+      .then(data => setHistory(Array.isArray(data) ? data : data.history || []))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -26,7 +49,24 @@ export default function HistoryPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search history..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
-          <Button variant="outline" size="sm"><Filter className="h-4 w-4 mr-1" /> Filter</Button>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            />
+            <span className="text-xs text-muted-foreground">to</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
+            />
+            <Button variant="outline" size="sm" onClick={fetchHistory}>
+              <Filter className="h-4 w-4 mr-1" /> Filter
+            </Button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-1" /> Export</Button>
@@ -54,7 +94,28 @@ export default function HistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => (
+                {loading && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />
+                    </td>
+                  </tr>
+                )}
+                {error && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12">
+                      <p className="text-sm text-red-400">{error}</p>
+                    </td>
+                  </tr>
+                )}
+                {!loading && !error && history.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12">
+                      <p className="text-sm text-muted-foreground">No history found</p>
+                    </td>
+                  </tr>
+                )}
+                {!loading && !error && history.map((item) => (
                   <tr key={item.id} className="border-b border-white/5 hover:bg-secondary/20 transition-colors">
                     <td className="p-4">
                       <input
@@ -81,7 +142,7 @@ export default function HistoryPage() {
                       <Badge variant="outline">{item.user}</Badge>
                     </td>
                     <td className="p-4 text-sm text-muted-foreground">
-                      {new Date(item.timestamp).toLocaleString()}
+                      {item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}
                     </td>
                   </tr>
                 ))}

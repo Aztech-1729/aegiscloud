@@ -2,11 +2,55 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.models.models import User, Subscription, PlanType, SubscriptionStatus
+from app.models.models import User, Subscription, PlanType
 from app.schemas.schemas import CheckoutRequest, CheckoutResponse, SubscriptionResponse
 from app.api.deps.auth import get_current_user
 
 router = APIRouter()
+
+
+PLANS_DATA = [
+    {
+        "name": "Free",
+        "price": 0,
+        "devices": 2,
+        "aiQueries": "5/day",
+        "features": ["Up to 2 devices", "Basic monitoring", "Community support"],
+    },
+    {
+        "name": "Pro",
+        "price": 9,
+        "devices": 10,
+        "aiQueries": "Unlimited",
+        "features": [
+            "Up to 10 devices",
+            "Unlimited AI queries",
+            "Full file management",
+            "Priority support",
+            "Device groups",
+            "Export history",
+        ],
+    },
+    {
+        "name": "Business",
+        "price": 29,
+        "devices": 50,
+        "aiQueries": "Unlimited",
+        "features": [
+            "Up to 50 devices",
+            "Unlimited AI queries",
+            "All Pro features",
+            "SSO integration",
+            "API access",
+            "Custom policies",
+        ],
+    },
+]
+
+
+@router.get("/plans")
+async def get_plans():
+    return PLANS_DATA
 
 
 @router.get("/subscription", response_model=SubscriptionResponse)
@@ -63,5 +107,5 @@ async def cancel_subscription(
         raise HTTPException(status_code=404, detail="No active subscription")
 
     subscription.cancel_at_period_end = True
-    subscription.status = SubscriptionStatus.cancelled
+    subscription.status = "cancelled"
     return {"message": "Subscription will be cancelled at the end of the billing period"}

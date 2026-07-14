@@ -30,6 +30,43 @@ async def list_devices(
     return result.scalars().all()
 
 
+@router.get("/metrics")
+async def get_device_metrics(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    total_result = await db.execute(
+        select(func.count(Device.id)).where(Device.user_id == current_user.id)
+    )
+    total_devices = total_result.scalar()
+
+    online_result = await db.execute(
+        select(func.count(Device.id)).where(
+            Device.user_id == current_user.id,
+            Device.status == DeviceStatus.online.value,
+        )
+    )
+    online_devices = online_result.scalar()
+
+    storage_result = await db.execute(
+        select(
+            func.coalesce(func.sum(Device.disk_used_gb), 0),
+            func.coalesce(func.sum(Device.disk_total_gb), 0),
+        ).where(Device.user_id == current_user.id)
+    )
+    storage_used, storage_total = storage_result.one()
+    storage_free = storage_total - storage_used
+
+    return {
+        "totalDevices": total_devices,
+        "onlineDevices": online_devices,
+        "storageUsed": float(storage_used),
+        "storageFree": float(storage_free),
+        "cpuAvg": 0,
+        "ramAvg": 0,
+    }
+
+
 @router.get("/{device_id}", response_model=DeviceResponse)
 async def get_device(
     device_id: str,

@@ -10,6 +10,8 @@ import {
   HardDrive, Settings, CheckCircle2
 } from 'lucide-react';
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aegiscloud.in';
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -17,25 +19,34 @@ interface Message {
   toolCalls?: Array<{ tool: string; status: 'completed' | 'running' }>;
 }
 
-const suggestedActions = [
-  { icon: Zap, label: 'My PC is slow', prompt: 'My PC is running slow, can you help?' },
-  { icon: Settings, label: 'Restart Explorer', prompt: 'Restart Windows Explorer' },
-  { icon: HardDrive, label: 'Clean temp files', prompt: 'Clean temporary files on my PC' },
-  { icon: Monitor, label: 'Show processes', prompt: 'Show me the running processes' },
-];
+interface SuggestedAction {
+  icon: string;
+  label: string;
+  prompt: string;
+}
+
+const iconMap: Record<string, React.ElementType> = {
+  Zap, Settings, HardDrive, Monitor, Sparkles, Bot, Activity: Monitor,
+};
 
 export default function AIChatPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hello! I'm your Aegis Cloud AI assistant. I can help you manage your Windows PC by running approved operations like cleaning files, checking system info, managing processes, and more. What would you like to do?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestedActions, setSuggestedActions] = useState<SuggestedAction[]>([]);
   const [selectedDevice] = useState('Work Desktop');
   const messagesEnd = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch(`${apiUrl}/api/v1/ai/suggestions`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    }).then(res => res.ok ? res.json() : [])
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.suggestions || data.data || []);
+        setSuggestedActions(list);
+      })
+      .catch(() => {});
+  }, []);
 
   const scrollToBottom = () => {
     messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,54 +69,41 @@ export default function AIChatPage() {
     setInput('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const assistantMessage: Message = {
+    try {
+      const res = await fetch(`${apiUrl}/api/v1/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: JSON.stringify({ message: input, device_id: selectedDevice }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.reply || data.message || data.content || 'No response from AI.',
+          toolCalls: data.toolCalls || data.tools || undefined,
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        setMessages((prev) => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'Sorry, I encountered an error. Please try again.',
+        }]);
+      }
+    } catch {
+      setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: getAIResponse(input),
-        toolCalls: getToolCalls(input),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+        content: 'Network error. Please check your connection and try again.',
+      }]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
-  };
-
-  const getAIResponse = (message: string): string => {
-    const lower = message.toLowerCase();
-    if (lower.includes('slow')) {
-      return "I've analyzed your system. Here's what I found:\n\n• **CPU**: Running at 34% — normal\n• **Memory**: 67% used — some room for improvement\n• **Disk**: 54% used — healthy\n\nI recommend cleaning temporary files and checking startup applications. Would you like me to do that?";
     }
-    if (lower.includes('temp') || lower.includes('clean')) {
-      return "I've cleaned temporary files. Here's the summary:\n\n• **Files removed**: 1,247\n• **Space freed**: 2.3 GB\n• **Folders cleaned**: Temp, Prefetch, Windows Update Cache\n\nYour system should feel a bit snappier now!";
-    }
-    if (lower.includes('explorer')) {
-      return "Windows Explorer has been restarted successfully. The taskbar and file explorer should refresh momentarily.";
-    }
-    if (lower.includes('process') || lower.includes('software')) {
-      return "Here are the top processes by CPU usage:\n\n1. **Chrome** — 12.3% (8 processes)\n2. **VS Code** — 8.7% (4 processes)\n3. **Discord** — 3.2%\n4. **Windows Defender** — 1.8%\n5. **Explorer** — 0.9%\n\nTotal running processes: 187. Would you like me to show more details?";
-    }
-    return "I understand your request. Let me check what I can do to help. I'll use the approved tools to assist you safely.";
-  };
-
-  const getToolCalls = (message: string) => {
-    const lower = message.toLowerCase();
-    if (lower.includes('slow')) {
-      return [
-        { tool: 'cpu_usage', status: 'completed' as const },
-        { tool: 'ram_usage', status: 'completed' as const },
-        { tool: 'disk_usage', status: 'completed' as const },
-      ];
-    }
-    if (lower.includes('temp') || lower.includes('clean')) {
-      return [{ tool: 'clean_temp', status: 'completed' as const }];
-    }
-    if (lower.includes('explorer')) {
-      return [{ tool: 'restart_explorer', status: 'completed' as const }];
-    }
-    if (lower.includes('process')) {
-      return [{ tool: 'list_processes', status: 'completed' as const }];
-    }
-    return undefined;
   };
 
   return (
@@ -180,20 +178,23 @@ export default function AIChatPage() {
           <div ref={messagesEnd} />
         </div>
 
-        {messages.length <= 1 && (
+        {messages.length === 0 && suggestedActions.length > 0 && (
           <div className="px-4 pb-2">
             <p className="text-xs text-muted-foreground mb-2">Suggested actions:</p>
             <div className="flex flex-wrap gap-2">
-              {suggestedActions.map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => { setInput(action.prompt); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/5 bg-secondary/20 hover:bg-secondary/40 text-xs text-muted-foreground hover:text-foreground transition-all"
-                >
-                  <action.icon className="h-3 w-3" />
-                  {action.label}
-                </button>
-              ))}
+              {suggestedActions.map((action) => {
+                const Icon = iconMap[action.icon] || Monitor;
+                return (
+                  <button
+                    key={action.label}
+                    onClick={() => { setInput(action.prompt); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/5 bg-secondary/20 hover:bg-secondary/40 text-xs text-muted-foreground hover:text-foreground transition-all"
+                  >
+                    <Icon className="h-3 w-3" />
+                    {action.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { LandingHero } from '@/components/landing/Hero';
 import { LandingFeatures } from '@/components/landing/Features';
 import { LandingHowItWorks } from '@/components/landing/HowItWorks';
@@ -7,8 +11,22 @@ import { LandingPricing } from '@/components/landing/Pricing';
 import { LandingFAQ } from '@/components/landing/FAQ';
 import { LandingFooter } from '@/components/landing/Footer';
 import { Navbar } from '@/components/landing/Navbar';
+import { useAuthStore } from '@/stores';
 
 export default function HomePage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading, hasHydrated } = useAuthStore();
+
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [hasHydrated, isAuthenticated, router]);
+
+  if (isLoading || (hasHydrated && isAuthenticated)) {
+    return null;
+  }
+
   return (
     <main className="relative min-h-screen">
       <div className="fixed inset-0 -z-10">
