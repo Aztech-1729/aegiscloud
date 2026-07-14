@@ -10,6 +10,10 @@ aegiscloud.in {
     }
 }
 
+www.aegiscloud.in {
+    redir https://aegiscloud.in{uri} permanent
+}
+
 api.aegiscloud.in {
     reverse_proxy backend:8000
 }
