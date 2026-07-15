@@ -180,19 +180,19 @@ export default function PairDevicePage() {
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-aegis-500/20 text-aegis-400 flex items-center justify-center text-xs font-bold">
                 2
               </span>
-              <span>Run the agent — it will generate a pair code automatically</span>
+              <span>Click "Generate Code" above to get a pairing code</span>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-aegis-500/20 text-aegis-400 flex items-center justify-center text-xs font-bold">
                 3
               </span>
-              <span>Generate a code above or enter the code from the agent</span>
+              <span>Run the agent on your PC and enter the code when prompted</span>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-aegis-500/20 text-aegis-400 flex items-center justify-center text-xs font-bold">
                 4
               </span>
-              <span>Your device will be connected automatically!</span>
+              <span>Once connected, your device will appear on the Devices page</span>
             </li>
           </ol>
         </CardContent>
