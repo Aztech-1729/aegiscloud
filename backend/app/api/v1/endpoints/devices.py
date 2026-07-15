@@ -19,6 +19,7 @@ class AgentPairRequest(BaseModel):
     device_name: str | None = None
     hostname: str | None = None
     os_info: str | None = None
+    device_fingerprint: str | None = None
 
 
 class AgentPairResponse(BaseModel):
@@ -63,12 +64,14 @@ async def pair_agent(data: AgentPairRequest, db: AsyncSession = Depends(get_db))
 
     device_name = data.device_name or data.hostname or f"Device-{secrets.token_hex(3).upper()}"
     device_token = secrets.token_urlsafe(64)
+    fingerprint = data.device_fingerprint or secrets.token_hex(32)
 
     device = Device(
         user_id=user_id,
         name=device_name,
         status=DeviceStatus.offline,
         device_token=device_token,
+        device_fingerprint=fingerprint,
     )
     db.add(device)
     pair_code.used = True

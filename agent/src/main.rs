@@ -113,6 +113,7 @@ async fn try_pair(
         "pair_code": pair_code,
         "hostname": hostname,
         "os_info": os_info,
+        "device_fingerprint": security::crypto::generate_device_fingerprint(),
     });
 
     let client = reqwest::Client::new();
