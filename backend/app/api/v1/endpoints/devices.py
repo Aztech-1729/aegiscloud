@@ -57,7 +57,7 @@ async def pair_agent(data: AgentPairRequest, db: AsyncSession = Depends(get_db))
     }
     user_result = await db.execute(select(User).where(User.id == user_id))
     user = user_result.scalar_one_or_none()
-    plan = user.plan.value if user else "free"
+    plan = user.plan if user else "free"
     if count >= max_devices.get(plan, 2):
         raise HTTPException(status_code=400, detail="Device limit reached for your plan")
 
