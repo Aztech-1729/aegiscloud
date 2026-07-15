@@ -7,6 +7,7 @@
 //! - Auto-reconnect with exponential backoff
 //! - Self-updating with signature verification
 
+use std::io::{self, Write};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use log::{info, error, warn};
@@ -136,13 +137,8 @@ async fn try_pair(
     Ok((device_id, device_token, device_name))
 }
 
-/// Main agent loop — designed to be called from Windows Service
+/// Main agent loop — interactive mode for standalone, event loop for service
 pub async fn run_agent(config: AgentConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    info!("Aegis Cloud Agent v{} starting...", env!("CARGO_PKG_VERSION"));
-    info!("Server: {}", config.server_url);
-    info!("Auto-update: {}", config.auto_update);
-    info!("Data dir: {}", config.data_dir);
-
     config.ensure_dirs()?;
 
     let state = AgentState::new(config.clone());
@@ -150,24 +146,60 @@ pub async fn run_agent(config: AgentConfig) -> Result<(), Box<dyn std::error::Er
     // Load persisted device token
     if let Some(token) = &config.device_token {
         *state.device_token.write().await = Some(token.clone());
-        info!("Device token loaded from config");
     } else {
-        // Try to load from persistent storage
         let token_path = format!("{}/device_token", config.data_dir);
         if let Ok(token) = tokio::fs::read_to_string(&token_path).await {
-            *state.device_token.write().await = Some(token.trim().to_string());
-            info!("Device token loaded from persistent storage");
+            let token = token.trim().to_string();
+            if !token.is_empty() {
+                *state.device_token.write().await = Some(token);
+            }
         }
     }
 
-    // Generate device fingerprint if not exists
+    // Generate device fingerprint
     {
         let fp = security::crypto::generate_device_fingerprint();
         *state.device_fingerprint.write().await = Some(fp.clone());
-        info!("Device fingerprint: {}...", &fp[..16]);
     }
 
-    // Start auto-updater in background (Phase 6)
+    let is_paired = state.device_token.read().await.is_some();
+
+    if is_paired {
+        // Already paired — connect directly
+        print_banner(true);
+        println!("  Status:    {}Connected{}", color("green"), color("reset"));
+        println!("  Server:    {}", config.server_url);
+        println!("{}", "─".repeat(45));
+        println!();
+    } else {
+        // Need pairing
+        print_banner(false);
+        println!("  Status:    {}Not Paired{}", color("yellow"), color("reset"));
+        println!("  Server:    {}", config.server_url);
+        println!("{}", "─".repeat(45));
+        println!();
+        println!("  {}How to pair:{}", color("bold"), color("reset"));
+        println!("  1. Go to {}", color("cyan"));
+        println!("     https://aegiscloud.in/dashboard/devices");
+        println!("  2. Click {}Generate Pair Code{}", color("bold"), color("reset"));
+        println!("  3. Enter the code below");
+        println!();
+
+        // Interactive pairing loop
+        let paired = interactive_pair(&config, &state).await?;
+        if !paired {
+            return Ok(());
+        }
+
+        println!();
+        println!("  {}Connected!{}", color("green"), color("reset"));
+        println!("  Device: {}{}{}", color("cyan"), 
+            state.device_token.read().await.as_deref().unwrap_or(""),
+            color("reset"));
+        println!();
+    }
+
+    // Start auto-updater in background
     if config.auto_update {
         let updater_state = state.clone();
         tokio::spawn(async move {
@@ -175,48 +207,26 @@ pub async fn run_agent(config: AgentConfig) -> Result<(), Box<dyn std::error::Er
         });
     }
 
-    // Main connection loop with exponential backoff
+    // Main connection loop
     let mut backoff = 1u64;
-    let max_backoff = 300u64; // 5 minutes max
+    let max_backoff = 300u64;
 
     loop {
-        // Check for shutdown signal
         if *state.shutdown.read().await {
-            info!("Shutdown signal received, exiting...");
             break;
         }
 
         let token = state.device_token.read().await.clone();
         if token.is_none() {
-            // Try to pair using pair code from config
-            if let Some(pair_code) = &config.pair_code {
-                info!("Attempting to pair with code: {}...", &pair_code[..4.min(pair_code.len())]);
-                match try_pair(&config.server_url, pair_code, &config.data_dir).await {
-                    Ok((device_id, device_token, device_name)) => {
-                        info!("Pairing successful! Device: {} ({})", device_name, device_id);
-                        *state.device_token.write().await = Some(device_token.clone());
-                        // Persist token
-                        let token_path = format!("{}/device_token", config.data_dir);
-                        let _ = tokio::fs::write(&token_path, &device_token).await;
-                        backoff = 1;
-                        continue;
-                    }
-                    Err(e) => {
-                        error!("Pairing failed: {}", e);
-                    }
-                }
-            } else {
-                info!("No device token. Set AEGIS_PAIR_CODE env var to pair.");
-                info!("Example: set AEGIS_PAIR_CODE=XXXX-XXXX && aegis-agent.exe");
-            }
-            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-            continue;
+            println!("  {}Disconnected{}", color("red"), color("reset"));
+            println!("  Run the agent again to reconnect.");
+            break;
         }
 
-        info!("Connecting to server...");
+        println!("  {}Connecting...{}", color("yellow"), color("reset"));
         match ws::client::connect_and_run(state.clone()).await {
             Ok(()) => {
-                info!("Connection closed gracefully");
+                println!("  {}Connection closed{}", color("yellow"), color("reset"));
                 backoff = 1;
             }
             Err(e) => {
@@ -226,49 +236,100 @@ pub async fn run_agent(config: AgentConfig) -> Result<(), Box<dyn std::error::Er
 
         *state.connected.write().await = false;
 
-        info!("Reconnecting in {} seconds...", backoff);
+        println!("  Reconnecting in {}s...", backoff);
         tokio::time::sleep(tokio::time::Duration::from_secs(backoff)).await;
 
-        // Exponential backoff with jitter
         backoff = (backoff * 2).min(max_backoff);
         let jitter = rand::random::<u64>() % 5;
         backoff += jitter;
     }
 
-    info!("Agent shutdown complete");
     Ok(())
+}
+
+/// Interactive pairing — prompts user for code
+async fn interactive_pair(
+    config: &AgentConfig,
+    state: &AgentState,
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    loop {
+        print!("  {}Enter pairing code: {}", color("bold"), color("reset"));
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let code = input.trim().to_string();
+
+        if code.is_empty() {
+            continue;
+        }
+        if code.eq_ignore_ascii_case("quit") || code.eq_ignore_ascii_case("exit") {
+            return Ok(false);
+        }
+
+        println!("  {}Pairing...{}", color("yellow"), color("reset"));
+
+        match try_pair(&config.server_url, &code, &config.data_dir).await {
+            Ok((device_id, device_token, device_name)) => {
+                *state.device_token.write().await = Some(device_token.clone());
+                let token_path = format!("{}/device_token", config.data_dir);
+                let _ = tokio::fs::write(&token_path, &device_token).await;
+                return Ok(true);
+            }
+            Err(e) => {
+                println!("  {}Failed: {}{}", color("red"), e, color("reset"));
+                println!("  Try again or type {}quit{} to exit.", color("bold"), color("reset"));
+                println!();
+            }
+        }
+    }
+}
+
+fn print_banner(paired: bool) {
+    println!();
+    println!("  {}╔═══════════════════════════════════════════╗{}", color("cyan"), color("reset"));
+    println!("  {}║       Aegis Cloud Agent v{:<16}║{}", color("cyan"), env!("CARGO_PKG_VERSION"), color("reset"));
+    println!("  {}╚═══════════════════════════════════════════╝{}", color("cyan"), color("reset"));
+    println!();
+}
+
+fn color(name: &str) -> &'static str {
+    match name {
+        "reset" => "\x1b[0m",
+        "bold" => "\x1b[1m",
+        "red" => "\x1b[31m",
+        "green" => "\x1b[32m",
+        "yellow" => "\x1b[33m",
+        "cyan" => "\x1b[36m",
+        _ => "",
+    }
 }
 
 #[tokio::main]
 async fn main() {
-    // Initialize logging
+    // Initialize logging (only for service mode or behind-the-scenes)
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or("info")
     ).init();
 
-    info!("═══════════════════════════════════════════════");
-    info!("  Aegis Cloud Agent v{}", env!("CARGO_PKG_VERSION"));
-    info!("═══════════════════════════════════════════════");
-
     let config = AgentConfig::from_env();
 
-    // Check if running as service or standalone
     let run_as_service = std::env::var("AEGIS_SERVICE_MODE")
         .unwrap_or_default()
         .parse::<bool>()
         .unwrap_or(false);
 
     if run_as_service {
-        info!("Running as Windows Service...");
         match service::windows::run_as_service(config).await {
             Ok(()) => info!("Service exited normally"),
             Err(e) => error!("Service error: {}", e),
         }
     } else {
-        info!("Running in standalone mode");
         match run_agent(config).await {
-            Ok(()) => info!("Agent exited normally"),
-            Err(e) => error!("Agent error: {}", e),
+            Ok(()) => {}
+            Err(e) => {
+                println!("  \x1b[31mError: {}\x1b[0m", e);
+            }
         }
     }
 }

@@ -77,7 +77,7 @@ export default function DevicesPage() {
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm"><Filter className="h-4 w-4 mr-1" /> Filter</Button>
-          <Button variant="gradient" size="sm"><Plus className="h-4 w-4 mr-1" /> Pair Device</Button>
+          <Button variant="gradient" size="sm" onClick={() => window.location.href = '/dashboard/pair-device'}><Plus className="h-4 w-4 mr-1" /> Pair Device</Button>
         </div>
       </div>
 
