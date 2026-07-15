@@ -308,17 +308,57 @@ fn color(name: &str) -> &'static str {
 
 #[tokio::main]
 async fn main() {
-    // Initialize logging (only for service mode or behind-the-scenes)
+    let args: Vec<String> = std::env::args().collect();
+
+    // Handle --install: register as Windows Service
+    if args.contains(&"--install".to_string()) {
+        let exe_path = std::env::current_exe()
+            .expect("Failed to get exe path")
+            .to_string_lossy()
+            .to_string();
+
+        let status = std::process::Command::new("sc")
+            .args(["create", "AegisCloudAgent",
+                &format!("binPath= {}", exe_path),
+                "start= auto",
+                "DisplayName= Aegis Cloud Agent"])
+            .status();
+
+        match status {
+            Ok(s) if s.success() => println!("  Service installed successfully."),
+            Ok(s) => println!("  Service install failed: exit code {:?}", s.code()),
+            Err(e) => println!("  Failed to run sc: {}", e),
+        }
+        return;
+    }
+
+    // Handle --uninstall: remove Windows Service
+    if args.contains(&"--uninstall".to_string()) {
+        let _ = std::process::Command::new("net").args(["stop", "AegisCloudAgent"]).status();
+        let status = std::process::Command::new("sc")
+            .args(["delete", "AegisCloudAgent"])
+            .status();
+
+        match status {
+            Ok(s) if s.success() => println!("  Service removed successfully."),
+            Ok(s) => println!("  Service removal failed: exit code {:?}", s.code()),
+            Err(e) => println!("  Failed to run sc: {}", e),
+        }
+        return;
+    }
+
+    // Initialize logging
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or("info")
     ).init();
 
     let config = AgentConfig::from_env();
 
-    let run_as_service = std::env::var("AEGIS_SERVICE_MODE")
-        .unwrap_or_default()
-        .parse::<bool>()
-        .unwrap_or(false);
+    let run_as_service = args.contains(&"--service".to_string())
+        || std::env::var("AEGIS_SERVICE_MODE")
+            .unwrap_or_default()
+            .parse::<bool>()
+            .unwrap_or(false);
 
     if run_as_service {
         match service::windows::run_as_service(config).await {
