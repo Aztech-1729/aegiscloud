@@ -91,6 +91,51 @@ impl AgentState {
     }
 }
 
+
+/// Try to pair with the server using a pair code
+async fn try_pair(
+    server_url: &str,
+    pair_code: &str,
+    data_dir: &str,
+) -> Result<(String, String, String), Box<dyn std::error::Error + Send + Sync>> {
+    let http_url = server_url
+        .replace("wss://", "https://")
+        .replace("ws://", "http://");
+
+    let hostname = hostname::get()
+        .map(|h| h.to_string_lossy().to_string())
+        .unwrap_or_else(|_| "Unknown".to_string());
+
+    let os_info = format!("Windows {}", std::env::var("OS").unwrap_or_else(|_| "Unknown".to_string()));
+
+    let body = serde_json::json!({
+        "pair_code": pair_code,
+        "hostname": hostname,
+        "os_info": os_info,
+    });
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("{}/api/v1/devices/pair-agent", http_url))
+        .json(&body)
+        .send()
+        .await?;
+
+    let status = resp.status();
+    let text = resp.text().await?;
+
+    if !status.is_success() {
+        return Err(format!("Pairing failed ({}): {}", status, text).into());
+    }
+
+    let data: serde_json::Value = serde_json::from_str(&text)?;
+    let device_id = data["device_id"].as_str().unwrap_or("").to_string();
+    let device_token = data["device_token"].as_str().unwrap_or("").to_string();
+    let device_name = data["device_name"].as_str().unwrap_or("Unknown").to_string();
+
+    Ok((device_id, device_token, device_name))
+}
+
 /// Main agent loop — designed to be called from Windows Service
 pub async fn run_agent(config: AgentConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("Aegis Cloud Agent v{} starting...", env!("CARGO_PKG_VERSION"));
@@ -143,8 +188,27 @@ pub async fn run_agent(config: AgentConfig) -> Result<(), Box<dyn std::error::Er
 
         let token = state.device_token.read().await.clone();
         if token.is_none() {
-            info!("No device token. Waiting for pairing...");
-            // In service mode, we'd wait for a pair code via named pipe or registry
+            // Try to pair using pair code from config
+            if let Some(pair_code) = &config.pair_code {
+                info!("Attempting to pair with code: {}...", &pair_code[..4.min(pair_code.len())]);
+                match try_pair(&config.server_url, pair_code, &config.data_dir).await {
+                    Ok((device_id, device_token, device_name)) => {
+                        info!("Pairing successful! Device: {} ({})", device_name, device_id);
+                        *state.device_token.write().await = Some(device_token.clone());
+                        // Persist token
+                        let token_path = format!("{}/device_token", config.data_dir);
+                        let _ = tokio::fs::write(&token_path, &device_token).await;
+                        backoff = 1;
+                        continue;
+                    }
+                    Err(e) => {
+                        error!("Pairing failed: {}", e);
+                    }
+                }
+            } else {
+                info!("No device token. Set AEGIS_PAIR_CODE env var to pair.");
+                info!("Example: set AEGIS_PAIR_CODE=XXXX-XXXX && aegis-agent.exe");
+            }
             tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
             continue;
         }

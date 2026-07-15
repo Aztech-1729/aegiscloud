@@ -11,8 +11,74 @@ from app.schemas.schemas import DeviceCreate, DevicePair, DeviceUpdate, DeviceRe
 from app.api.deps.auth import get_current_user
 from app.core.config import settings
 from app.core.security import create_pair_code
+from pydantic import BaseModel
+
+
+class AgentPairRequest(BaseModel):
+    pair_code: str
+    device_name: str | None = None
+    hostname: str | None = None
+    os_info: str | None = None
+
+
+class AgentPairResponse(BaseModel):
+    device_id: str
+    device_token: str
+    device_name: str
 
 router = APIRouter()
+
+
+@router.post("/pair-agent", response_model=AgentPairResponse)
+async def pair_agent(data: AgentPairRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PairCode).where(
+            PairCode.code == data.pair_code,
+            PairCode.used == False,
+            PairCode.expires_at > datetime.now(timezone.utc),
+        )
+    )
+    pair_code = result.scalar_one_or_none()
+    if not pair_code:
+        raise HTTPException(status_code=400, detail="Invalid or expired pair code")
+
+    user_id = pair_code.user_id
+
+    device_count = await db.execute(
+        select(func.count(Device.id)).where(Device.user_id == user_id)
+    )
+    count = device_count.scalar()
+
+    max_devices = {
+        "free": settings.MAX_DEVICES_FREE,
+        "pro": settings.MAX_DEVICES_PRO,
+        "business": settings.MAX_DEVICES_BUSINESS,
+        "enterprise": 999999,
+    }
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    plan = user.plan.value if user else "free"
+    if count >= max_devices.get(plan, 2):
+        raise HTTPException(status_code=400, detail="Device limit reached for your plan")
+
+    device_name = data.device_name or data.hostname or f"Device-{secrets.token_hex(3).upper()}"
+    device_token = secrets.token_urlsafe(64)
+
+    device = Device(
+        user_id=user_id,
+        name=device_name,
+        status=DeviceStatus.offline,
+        device_token=device_token,
+    )
+    db.add(device)
+    pair_code.used = True
+    await db.flush()
+
+    return AgentPairResponse(
+        device_id=device.id,
+        device_token=device_token,
+        device_name=device_name,
+    )
 
 
 @router.get("", response_model=List[DeviceResponse])
