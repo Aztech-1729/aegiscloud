@@ -38,7 +38,7 @@ impl AgentConfig {
     pub fn from_env() -> Self {
         Self {
             server_url: std::env::var("AEGIS_SERVER_URL")
-                .unwrap_or_else(|_| "wss://api.aegiscloud.io".to_string()),
+                .unwrap_or_else(|_| "wss://api.aegiscloud.in".to_string()),
             device_token: std::env::var("AEGIS_DEVICE_TOKEN").ok(),
             pair_code: std::env::var("AEGIS_PAIR_CODE").ok(),
             log_level: std::env::var("AEGIS_LOG_LEVEL")

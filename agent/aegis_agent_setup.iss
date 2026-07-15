@@ -1,6 +1,6 @@
 [Setup]
 AppName=Aegis Cloud Windows Agent
-AppVersion=1.2.4
+AppVersion=1.2.5
 AppPublisher=Aegis Cloud
 AppPublisherURL=https://aegiscloud.in
 DefaultDirName={autopf}\Aegis Cloud Agent

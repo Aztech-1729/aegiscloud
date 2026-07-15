@@ -66,7 +66,7 @@ fn load_config_from_registry() -> AgentConfig {
     // HKEY_LOCAL_MACHINE\SOFTWARE\AegisCloud\Agent\DataDir
     
     AgentConfig {
-        server_url: "wss://api.aegiscloud.io".to_string(),
+        server_url: "wss://api.aegiscloud.in".to_string(),
         device_token: None,
         pair_code: None,
         log_level: "info".to_string(),
@@ -78,7 +78,7 @@ fn load_config_from_registry() -> AgentConfig {
 /// Merge registry config with environment config (env takes precedence)
 fn merge_config(base: AgentConfig, registry: AgentConfig) -> AgentConfig {
     AgentConfig {
-        server_url: if base.server_url != "wss://api.aegiscloud.io" {
+        server_url: if base.server_url != "wss://api.aegiscloud.in" {
             base.server_url
         } else {
             registry.server_url
