@@ -53,9 +53,9 @@ pub async fn connect_and_run(state: AgentState) -> Result<(), Box<dyn std::error
 
     // Phase 5: Use WSS in production, WS for development
     let ws_url = if state.config.server_url.starts_with("wss://") {
-        format!("{}/ws/agent?device_token={}", state.config.server_url, token)
+        format!("{}/api/v1/ws/agent?device_token={}", state.config.server_url, token)
     } else {
-        format!("{}/ws/agent?device_token={}", state.config.server_url, token)
+        format!("{}/api/v1/ws/agent?device_token={}", state.config.server_url, token)
     };
 
     info!("Connecting to {}", &ws_url[..50.min(ws_url.len())]);
