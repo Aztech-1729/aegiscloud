@@ -17,7 +17,7 @@ UninstallDisplayIcon={app}\aegis-agent.exe
 WizardStyle=modern
 
 [Files]
-Source: "target\x86_64-pc-windows-gnu\release\aegis-agent.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "target\release\aegis-agent.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Registry]
 ; Set global environment variable for the Server URL
